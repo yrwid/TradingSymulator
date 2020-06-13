@@ -1,6 +1,9 @@
 import requests as req
 import bs4
 import pandas as pd
+from datetime import datetime as dt
+from datetime import timedelta
+
 
 def liveCDRstocks():
     #Live price stocks 
@@ -19,19 +22,30 @@ def archStocks(instrument, data):
 
     return archStats
 
-def collectData(start, emd, instrument):
+def collectData(dataStart, dataEnd, instrument):
+    start = dt.strptime(dataStart, '%d-%m-%Y')
+    stop = dt.strptime(dataEnd, '%d-%m-%Y')
+    delta = timedelta(days=1) 
+    df = pd.DataFrame([])
     tmp = list()
-    stats = archStocks(instrument,start)
-    tmp.append(stats)
+
+    while start < stop:
+        stats = archStocks(instrument,start.strftime('%d-%m-%Y'))
+        tmp.append(stats)
+        start = start + delta # increase day one by one
+        
     df = pd.DataFrame(tmp,columns=['Name','data','ISIN','currency','openV','maxV','minV','closeV','valueChagPer','vol','amountOfDeals','valueOfDeals'])
+
     return df
 
 def main():
     instrument = 'CDPROJEKT'
-    dataStart = '10-06-2020'
-    dataEnd = '12-06-2020'
+    dataStart = '08-06-2020'
+    dataEnd = '11-06-2020'
     print(collectData(dataStart,dataEnd,instrument))
     
 
 if __name__ == '__main__':
     main()
+
+
