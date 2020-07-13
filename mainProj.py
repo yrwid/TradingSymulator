@@ -4,6 +4,7 @@ import pandas as pd
 from datetime import datetime as dt
 import matplotlib.pyplot as plt
 from datetime import timedelta
+from datetime import date
 
 class GPW:
     def __init__(self, instrument,CDR):
@@ -35,6 +36,15 @@ class GPW:
             archStats = [instrument,data,'no data','no data','no data','no data','no data','no data','no data','no data','no data','no data']
 
         return archStats
+
+    def updateCsv(self, path):
+        with open(path, "r") as f1:
+            last_line = f1.readlines()[-1]
+        
+        tempDict = tuple(item for item in last_line.split(","))
+        updateDates = list([tempDict[1], str(date.today().strftime('%d-%m-%Y') )])
+        print(updateDates)
+
 
     def collectData(self, dataStart, dataEnd):
         start = dt.strptime(dataStart, '%d-%m-%Y')
@@ -70,6 +80,8 @@ def readCsv(path):
     cdp_df.closeV = pd.to_numeric(cdp_df.closeV)
     cdp_df.to_csv('cdp_loaded.csv', index = False)
     return cdp_df
+
+    
 
 def rollingAvg(data, win):
     data['MA'+str(win)] = data['closeV'].rolling(window=win).mean()
@@ -179,15 +191,16 @@ def main():
     CDR = 'PLOPTTC00011' 
     emasUsed = [3,5,8,10,12,15,30,35,40,45,50,60]
     
-    # cdproj = GPW(instr,CDR)
+    cdproj = GPW(instr,CDR)
+    cdproj.updateCsv('cdp_loaded.csv')
     # df = cdproj.collectData(dataStart,dataEnd)
     # cdproj.liveSpy()
     # df.to_csv('cdp.csv', index = False)
-    cdp_df = readCsv('cdp.csv')
-    cdp_df=calculateEma(cdp_df, emasUsed)
-    calculateSignals(cdp_df, emasUsed)
+    # cdp_df = readCsv('cdp.csv')
+    # cdp_df=calculateEma(cdp_df, emasUsed)
+    # calculateSignals(cdp_df, emasUsed)
     # print(cdp_df.iloc[10,12:24])
-    makePlot(cdp_df,emasUsed)
+    # makePlot(cdp_df,emasUsed)
 
 if __name__ == '__main__':
     main()
