@@ -11,20 +11,6 @@ class GPW:
         self.instrument = instrument
         self.CDR = CDR
 
-    def liveCDRstocks(self):
-        #Live price stocks 
-
-        resp = req.get('https://www.gpw.pl/spolka?isin='+ self.CDR)
-        soup = bs4.BeautifulSoup(resp.text, "xml")
-        livePrice =  soup.find_all('div',{'class' : 'max_min'})[0].find('span').text
-
-        return livePrice.split()
-
-    def liveSpy(self):
-        while True:
-            print(self.liveCDRstocks())
-
-
     def archStocks(self,instrument, data):
         try:
             resp = req.get('https://www.gpw.pl/archiwum-notowan-full?type=10&instrument='+instrument+'&date='+data)
@@ -37,14 +23,35 @@ class GPW:
 
         return archStats
 
+    def saveCSV(self, df):
+        for i in range(len(df)):
+            if(df.iloc[i,2] == 'no data' and i != 0 ):
+                df.iloc[i,[2,3,7]] = df.iloc[i-1,[2,3,7]]
+            elif(i == 0):
+                for j in range(10):
+                    if(df.iloc[j,2] != 'no data'):
+                        df.iloc[0,[2,3,7]] = df.iloc[j,[2,3,4]]
+                        break
+        df.closeV = pd.to_numeric(df.closeV)
+        df.to_csv('cdp_test.csv', index = False) 
+
     def updateCsv(self, path):
         with open(path, "r") as f1:
             last_line = f1.readlines()[-1]
         
         tempDict = tuple(item for item in last_line.split(","))
-        updateDates = list([tempDict[1], str(date.today().strftime('%d-%m-%Y') )])
-        print(updateDates)
+        startDate = ((dt.strptime(tempDict[1], '%d-%m-%Y') + timedelta(days=1)).date()).strftime('%d-%m-%Y')
+        updateDates = list([str(startDate) , str(date.today().strftime('%d-%m-%Y') )])
+        df = self.collectData(updateDates[0],updateDates[1])
 
+        for i in range(len(df)):
+            if(df.iloc[i,2] == 'no data' and i != 0 ):
+                df.iloc[i,[2,3,7]] = df.iloc[i-1,[2,3,7]]
+            elif(i == 0):
+                df.iloc[i,2] = tempDict[2] 
+                df.iloc[i,3] = tempDict[3]
+                df.iloc[i,7] = tempDict[7]
+        df.to_csv(path, mode='a', header=False, index = False)
 
     def collectData(self, dataStart, dataEnd):
         start = dt.strptime(dataStart, '%d-%m-%Y')
@@ -53,7 +60,7 @@ class GPW:
         df = pd.DataFrame([])
         tmp = list()
 
-        while start < stop:
+        while start <= stop:
             print("Downloading {} data... ".format(start.date()))
             stats = self.archStocks(self.instrument,start.strftime('%d-%m-%Y'))
             tmp.append(stats)
@@ -65,23 +72,12 @@ class GPW:
         df[col] = df[col].astype(float,errors = 'ignore')
         return df
 
-def readCsv(path):
-    cdp_df = pd.read_csv(path, header=0)
-    # print(cdp_df)
-    for i in range(len(cdp_df)):
-        if(cdp_df.iloc[i,2] == 'no data' and i != 0 ):
-            cdp_df.iloc[i,[2,3,7]] = cdp_df.iloc[i-1,[2,3,7]]
-        elif(i == 0):
-            for j in range(10):
-                if(cdp_df.iloc[j,2] != 'no data'):
-                    cdp_df.iloc[0,[2,3,7]] = cdp_df.iloc[j,[2,3,4]]
-                    break
-    # print(cdp_df)
-    cdp_df.closeV = pd.to_numeric(cdp_df.closeV)
-    cdp_df.to_csv('cdp_loaded.csv', index = False)
-    return cdp_df
+#--------------------------------------------------------------------------------------------------------------------------------------------
 
-    
+def readCsv(path):
+    df = pd.read_csv(path)
+    df.closeV = pd.to_numeric(df.closeV)
+    return df
 
 def rollingAvg(data, win):
     data['MA'+str(win)] = data['closeV'].rolling(window=win).mean()
@@ -190,9 +186,13 @@ def main():
     instr = 'CDPROJEKT'
     CDR = 'PLOPTTC00011' 
     emasUsed = [3,5,8,10,12,15,30,35,40,45,50,60]
-    
+
     cdproj = GPW(instr,CDR)
-    cdproj.updateCsv('cdp_loaded.csv')
+    # cdp_df = pd.read_csv('cdp.csv', header=0)
+    # cdproj.saveCSV(cdp_df)
+    cdproj.updateCsv('cdp_test.csv')
+    # cdp_df.to_csv('cdp.csv', index = False)    
+    # cdproj.updateCsv('cdp.csv')
     # df = cdproj.collectData(dataStart,dataEnd)
     # cdproj.liveSpy()
     # df.to_csv('cdp.csv', index = False)
