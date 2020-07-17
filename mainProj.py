@@ -5,11 +5,13 @@ from datetime import datetime as dt
 import matplotlib.pyplot as plt
 from datetime import timedelta
 from datetime import date
+import time
 
-class GPW:
-    def __init__(self, instrument,CDR):
+class GPW_DataLoader:
+    def __init__(self, instrument, dateStart,dateEnd):
         self.instrument = instrument
-        self.CDR = CDR
+        self.dateStart = dateStart
+        self.dateEnd = dateEnd
 
     def archStocks(self,instrument, data):
         try:
@@ -23,7 +25,7 @@ class GPW:
 
         return archStats
 
-    def saveCSV(self, df):
+    def saveCSV(self,path, df):
         for i in range(len(df)):
             if(df.iloc[i,2] == 'no data' and i != 0 ):
                 df.iloc[i,[2,3,7]] = df.iloc[i-1,[2,3,7]]
@@ -33,7 +35,7 @@ class GPW:
                         df.iloc[0,[2,3,7]] = df.iloc[j,[2,3,4]]
                         break
         df.closeV = pd.to_numeric(df.closeV)
-        df.to_csv('cdp_test.csv', index = False) 
+        df.to_csv(path, index = False) 
 
     def updateCsv(self, path):
         with open(path, "r") as f1:
@@ -53,9 +55,9 @@ class GPW:
                 df.iloc[i,7] = tempDict[7]
         df.to_csv(path, mode='a', header=False, index = False)
 
-    def collectData(self, dataStart, dataEnd):
-        start = dt.strptime(dataStart, '%d-%m-%Y')
-        stop = dt.strptime(dataEnd, '%d-%m-%Y')
+    def collectData(self, dateStart, dateEnd):
+        start = dt.strptime(dateStart, '%d-%m-%Y')
+        stop = dt.strptime(dateEnd, '%d-%m-%Y')
         delta = timedelta(days=1) 
         df = pd.DataFrame([])
         tmp = list()
@@ -72,135 +74,158 @@ class GPW:
         df[col] = df[col].astype(float,errors = 'ignore')
         return df
 
+    def readGpwStocks(self,dateStart,dateEnd):
+        excelGpwStocks = 'aa.xlsx'
+        gpwStocks = pd.read_excel(excelGpwStocks, index_col=False)
+        # print(gpwStocks)
+        for i  in range(0,10): #(len(gpwStocks))
+            companyName = gpwStocks.iloc[i,0]  # 11bit-studio ISIN
+            self.instrument = companyName
+            df = self.collectData(dateStart,dateEnd)
+            self.saveCSV(str(gpwStocks.iloc[i,0]) + '.csv',df)
+
+
+        
 #--------------------------------------------------------------------------------------------------------------------------------------------
 
-def readCsv(path):
-    df = pd.read_csv(path)
-    df.closeV = pd.to_numeric(df.closeV)
-    return df
+class simulatorEngine():
+    def __init__(self, path):
+        self.data = readCSV(path)
 
-def rollingAvg(data, win):
-    data['MA'+str(win)] = data['closeV'].rolling(window=win).mean()
-    return data
+    def __readCsv():
+        df = pd.read_csv(path)
+        df.closeV = pd.to_numeric(df.closeV)
+        return df
 
-def calculateEma(data, emasUsed):
-    for x in emasUsed:
-        ema = x
-        data['EMA'+str(ema)] = round(data['closeV'].ewm(span=ema, adjust=False).mean(),2)
-    return data
+    def calculateSMA(data, windows):
+        data['MA'+str(win)] = data['closeV'].rolling(window=win).mean()
+        return data
 
-def makePlot(data, emasUsed):
-    _y=['closeV']
-    for ema in emasUsed:
-        _y.append('EMA'+str(ema))
-    data.plot(x ='data', y=_y, kind = 'line',marker = '.')
-    plt.show()
+    def calculateEMA(data, emasUsed):
+        for x in emasUsed:
+            ema = x
+            data['EMA'+str(ema)] = round(data['closeV'].ewm(span=ema, adjust=False).mean(),2)
+        return data
 
-def calculateSignals(data, emasUsed):
-    pos = 0
-    num = 0
-    gains=0
-    ng=0
-    losses=0
-    nl=0
-    totalR=1
+    def makePlot(data, emasUsed):
+        _y=['closeV']
+        for ema in emasUsed:
+            _y.append('EMA'+str(ema))
+        data.plot(x ='data', y=_y, kind = 'line',marker = '.')
+        plt.show()
 
-    percentChange = list()
-    for i in data.index:
-        cmin = min(data['EMA5'][i],data['EMA8'][i],data['EMA10'][i],data['EMA12'][i],data['EMA15'][i])  
-        cmax = max(data['EMA30'][i],data['EMA35'][i],data['EMA40'][i],data['EMA45'][i],data['EMA50'][i],data['EMA60'][i])
-        close = data['closeV'][i] 
+    def calculateSignals(data, emasUsed):
+        pos = 0
+        num = 0
+        gains=0
+        ng=0
+        losses=0
+        nl=0
+        totalR=1
+        percentChange = list()
 
-        if(cmin > cmax):
-            if(pos == 0):
-                bp = close
-                pos = 1
-                print('Buying at {}, data:{} '.format(bp,data['data'][i]))
+        for i in data.index:
+            cmin = min(data['EMA5'][i],data['EMA8'][i],data['EMA10'][i],data['EMA12'][i],data['EMA15'][i])  
+            cmax = max(data['EMA30'][i],data['EMA35'][i],data['EMA40'][i],data['EMA45'][i],data['EMA50'][i],data['EMA60'][i])
+            close = data['closeV'][i] 
 
-        elif(cmin < cmax):
-            if(pos == 1):
-                sp = close
+            if(cmin > cmax):
+                if(pos == 0):
+                    bp = close
+                    pos = 1
+                    print('Buying at {}, data:{} '.format(bp,data['data'][i]))
+
+            elif(cmin < cmax):
+                if(pos == 1):
+                    sp = close
+                    pos = 0
+                    print('selling at {}, data:{} '.format(sp,data['data'][i]))
+                    pc = (sp/bp - 1)*100
+                    percentChange.append(pc)
+
+            if(num == data['closeV'].count()-1 and pos == 1):
                 pos = 0
-                print('selling at {}, data:{} '.format(sp,data['data'][i]))
+                sp = close
+                print('executing sell at end of data, price: {}, data:{}'.format(sp,data['data'][i]))
                 pc = (sp/bp - 1)*100
                 percentChange.append(pc)
 
-        if(num == data['closeV'].count()-1 and pos == 1):
-            pos = 0
-            sp = close
-            print('executing sell at end of data, price: {}, data:{}'.format(sp,data['data'][i]))
-            pc = (sp/bp - 1)*100
-            percentChange.append(pc)
+            num+=1
 
-        num+=1
+        print(percentChange)
 
-    print(percentChange)
+        for i in percentChange:
+            if(i>0):
+                gains+=i
+                ng+=1
+            else:
+                losses+=i
+                nl+=1
+            totalR=totalR*((i/100)+1)
 
-    for i in percentChange:
-        if(i>0):
-            gains+=i
-            ng+=1
+        totalR=round((totalR-1)*100,2)
+
+        if(ng>0):
+            avgGain=gains/ng
+            maxR=str(max(percentChange))
         else:
-            losses+=i
-            nl+=1
-        totalR=totalR*((i/100)+1)
+            avgGain=0
+            maxR="undefined"
 
-    totalR=round((totalR-1)*100,2)
+        if(nl>0):
+            avgLoss=losses/nl
+            maxL=str(min(percentChange))
+            ratio=str(-avgGain/avgLoss)
+        else:
+            avgLoss=0
+            maxL="undefined"
+            ratio="inf"
 
-    if(ng>0):
-        avgGain=gains/ng
-        maxR=str(max(percentChange))
-    else:
-        avgGain=0
-        maxR="undefined"
+        if(ng>0 or nl>0):
+            battingAvg=ng/(ng+nl)
+        else:
+            battingAvg=0
 
-    if(nl>0):
-        avgLoss=losses/nl
-        maxL=str(min(percentChange))
-        ratio=str(-avgGain/avgLoss)
-    else:
-        avgLoss=0
-        maxL="undefined"
-        ratio="inf"
-
-    if(ng>0 or nl>0):
-        battingAvg=ng/(ng+nl)
-    else:
-        battingAvg=0
-
-    print()
-    print("Results for stocks going back to "+str(data['data'][0])+", Sample size: "+str(ng+nl)+" trades")
-    print("EMAs used: "+str(emasUsed))
-    print("Batting Avg: "+ str(battingAvg))
-    print("Gain/loss ratio: "+ ratio)
-    print("Average Gain: "+ str(avgGain))
-    print("Average Loss: "+ str(avgLoss))
-    print("Max Return: "+ maxR)
-    print("Max Loss: "+ maxL)
-    print("Total return over "+str(ng+nl)+ " trades: "+ str(totalR)+"%" )
-    print()
+        print()
+        print("Results for stocks going back to "+str(data['data'][0])+", Sample size: "+str(ng+nl)+" trades")
+        print("EMAs used: "+str(emasUsed))
+        print("Batting Avg: "+ str(battingAvg))
+        print("Gain/loss ratio: "+ ratio)
+        print("Average Gain: "+ str(avgGain))
+        print("Average Loss: "+ str(avgLoss))
+        print("Max Return: "+ maxR)
+        print("Max Loss: "+ maxL)
+        print("Total return over "+str(ng+nl)+ " trades: "+ str(totalR)+"%" )
+        print()
 
 def main():
-    dataStart = '01-01-2020'
-    dataEnd = '04-07-2020'
+    dateStart = '01-01-2020'
+    dateEnd = '16-07-2020'
     instr = 'CDPROJEKT'
     CDR = 'PLOPTTC00011' 
     emasUsed = [3,5,8,10,12,15,30,35,40,45,50,60]
 
-    cdproj = GPW(instr,CDR)
+    # gpwdt = GPW_DataLoader(instr,dateStart,dateEnd)
+    eng = simulatorEngine()
+    # start = time.time()
+    # gpwdt.readGpwStocks(dateStart,dateEnd)
+    # print("hh")
+    # end = time.time()
+    # print('Elapsed time:{} '.format(end - start))
     # cdp_df = pd.read_csv('cdp.csv', header=0)
     # cdproj.saveCSV(cdp_df)
-    cdproj.updateCsv('cdp_test.csv')
+    # cdproj.updateCsv('cdp_test.csv')
     # cdp_df.to_csv('cdp.csv', index = False)    
     # cdproj.updateCsv('cdp.csv')
     # df = cdproj.collectData(dataStart,dataEnd)
     # cdproj.liveSpy()
     # df.to_csv('cdp.csv', index = False)
-    # cdp_df = readCsv('cdp.csv')
-    # cdp_df=calculateEma(cdp_df, emasUsed)
+    df = readCsv('11BIT.csv')
+    print(type(df))
+    df=calculateEma(df, emasUsed)
     # calculateSignals(cdp_df, emasUsed)
     # print(cdp_df.iloc[10,12:24])
-    # makePlot(cdp_df,emasUsed)
+    makePlot(df,emasUsed)
 
 if __name__ == '__main__':
     main()
