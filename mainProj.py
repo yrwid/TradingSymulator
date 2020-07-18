@@ -13,7 +13,7 @@ class GPW_DataLoader:
         self.dateStart = dateStart
         self.dateEnd = dateEnd
 
-    def archStocks(self,instrument, data):
+    def __archStocks(self,instrument, data):
         try:
             resp = req.get('https://www.gpw.pl/archiwum-notowan-full?type=10&instrument='+instrument+'&date='+data)
             soup = bs4.BeautifulSoup(resp.text, "xml")
@@ -64,7 +64,7 @@ class GPW_DataLoader:
 
         while start <= stop:
             print("Downloading {} data... ".format(start.date()))
-            stats = self.archStocks(self.instrument,start.strftime('%d-%m-%Y'))
+            stats = self.__archStocks(self.instrument,start.strftime('%d-%m-%Y'))
             tmp.append(stats)
             start = start + delta # increase day one by one
             print("Done.")
@@ -74,54 +74,68 @@ class GPW_DataLoader:
         df[col] = df[col].astype(float,errors = 'ignore')
         return df
 
-    def readGpwStocks(self,dateStart,dateEnd):
-        excelGpwStocks = 'aa.xlsx'
+    def readGpwStocks(self,dateStart,dateEnd,i_start, i_stop):
+        excelGpwStocks = 'gpwStocks.xlsx'
         gpwStocks = pd.read_excel(excelGpwStocks, index_col=False)
         # print(gpwStocks)
-        for i  in range(0,10): #(len(gpwStocks))
+        for i  in range(i_start,i_stop): #(len(gpwStocks))
+            print('Now: {}'.format(str(gpwStocks.iloc[i,0])))
             companyName = gpwStocks.iloc[i,0]  # 11bit-studio ISIN
             self.instrument = companyName
             df = self.collectData(dateStart,dateEnd)
             self.saveCSV(str(gpwStocks.iloc[i,0]) + '.csv',df)
 
-
-        
 #--------------------------------------------------------------------------------------------------------------------------------------------
 
 class simulatorEngine():
-    def __init__(self, path):
-        self.data = readCSV(path)
+    def __init__(self, path, cash):
+        self.path = path
+        self.__data = self.__readCsv()
+        self.cash = cash
 
-    def __readCsv():
-        df = pd.read_csv(path)
+    def __readCsv(self):
+        df = pd.read_csv(self.path)
         df.closeV = pd.to_numeric(df.closeV)
         return df
 
-    def calculateSMA(data, windows):
-        data['MA'+str(win)] = data['closeV'].rolling(window=win).mean()
-        return data
+    def calculateSMA(self,windows):
+        self.__data['MA'+str(win)] = self.__data['closeV'].rolling(window=win).mean()
+        return True
 
-    def calculateEMA(data, emasUsed):
+    def calculateEMA(self,emasUsed):
+        self.emasUsed = emasUsed
         for x in emasUsed:
             ema = x
-            data['EMA'+str(ema)] = round(data['closeV'].ewm(span=ema, adjust=False).mean(),2)
-        return data
+            self.__data['EMA'+str(ema)] = round(self.__data['closeV'].ewm(span=ema, adjust=False).mean(),2)
+        return True
 
-    def makePlot(data, emasUsed):
+    def makePlot(self):
         _y=['closeV']
-        for ema in emasUsed:
+        for ema in self.emasUsed:
             _y.append('EMA'+str(ema))
-        data.plot(x ='data', y=_y, kind = 'line',marker = '.')
+        self.__data.plot(x ='data', y=_y, kind = 'line',marker = '.')
         plt.show()
+        return True
 
-    def calculateSignals(data, emasUsed):
+    def strategyEMA(self,data, emasUsed):
+        indktrs = {
+                "pos" : 0,
+                "num" : 0,
+                "gains" : 0,
+                "ng" : 0,
+                "losses" : 0,
+                "nl" : 0,
+                "totalR" : 1,
+                "percentChange" : list()
+            }  
+
         pos = 0
         num = 0
-        gains=0
-        ng=0
-        losses=0
-        nl=0
-        totalR=1
+        gains = 0
+        ng = 0
+        losses = 0
+        nl = 0
+        totalR = 1
         percentChange = list()
 
         for i in data.index:
@@ -152,7 +166,9 @@ class simulatorEngine():
 
             num+=1
 
-        print(percentChange)
+        return True
+
+    def indicators(self):
 
         for i in percentChange:
             if(i>0):
@@ -202,30 +218,15 @@ def main():
     dateStart = '01-01-2020'
     dateEnd = '16-07-2020'
     instr = 'CDPROJEKT'
-    CDR = 'PLOPTTC00011' 
+    i_start = 20 # 10 to 20 of gpw stocks 
+    i_stop =  30
     emasUsed = [3,5,8,10,12,15,30,35,40,45,50,60]
 
-    # gpwdt = GPW_DataLoader(instr,dateStart,dateEnd)
-    eng = simulatorEngine()
-    # start = time.time()
-    # gpwdt.readGpwStocks(dateStart,dateEnd)
-    # print("hh")
-    # end = time.time()
-    # print('Elapsed time:{} '.format(end - start))
-    # cdp_df = pd.read_csv('cdp.csv', header=0)
-    # cdproj.saveCSV(cdp_df)
-    # cdproj.updateCsv('cdp_test.csv')
-    # cdp_df.to_csv('cdp.csv', index = False)    
-    # cdproj.updateCsv('cdp.csv')
-    # df = cdproj.collectData(dataStart,dataEnd)
-    # cdproj.liveSpy()
-    # df.to_csv('cdp.csv', index = False)
-    df = readCsv('11BIT.csv')
-    print(type(df))
-    df=calculateEma(df, emasUsed)
-    # calculateSignals(cdp_df, emasUsed)
-    # print(cdp_df.iloc[10,12:24])
-    makePlot(df,emasUsed)
+    gpwdt = GPW_DataLoader(instr,dateStart,dateEnd)
+    # eng = simulatorEngine('11BIT.csv')
+    # eng.calculateEMA(emasUsed)
+    # eng.makePlot()
+    gpwdt.readGpwStocks(dateStart,dateEnd,i_start,i_stop)
 
 if __name__ == '__main__':
     main()
