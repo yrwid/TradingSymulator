@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 from datetime import timedelta
 from datetime import date
 import time
+from abc import ABC, abstractmethod
 
 class GPW_DataLoader:
     def __init__(self, instrument, dateStart,dateEnd):
@@ -87,6 +88,29 @@ class GPW_DataLoader:
 
 #--------------------------------------------------------------------------------------------------------------------------------------------
 
+class abcEngine(ABC):
+    def __init__(self, path, cash):
+        self.path = path
+        self.__data = self.__readCsv()
+        self.cash = cash
+    
+    def __readCsv(self):
+        df = pd.read_csv(self.path)
+        df.closeV = pd.to_numeric(df.closeV)
+        return df
+
+    @abstractmethod
+    def strategy(self):
+        pass
+
+    @abstractmethod
+    def makePlot(self):
+        pass
+    
+    @abstractmethod
+    def indicators(self):
+        pass
+
 class simulatorEngine():
     def __init__(self, path, cash):
         self.path = path
@@ -117,109 +141,116 @@ class simulatorEngine():
         plt.show()
         return True
 
-    def strategyEMA(self,data, emasUsed):
-        indktrs = {
-                "pos" : 0,
-                "num" : 0,
-                "gains" : 0,
-                "ng" : 0,
-                "losses" : 0,
-                "nl" : 0,
-                "totalR" : 1,
-                "percentChange" : list()
-            }  
-
+    def strategy(self):
         pos = 0
         num = 0
-        gains = 0
-        ng = 0
-        losses = 0
-        nl = 0
-        totalR = 1
-        percentChange = list()
+        self.percentChange = list()
 
-        for i in data.index:
-            cmin = min(data['EMA5'][i],data['EMA8'][i],data['EMA10'][i],data['EMA12'][i],data['EMA15'][i])  
-            cmax = max(data['EMA30'][i],data['EMA35'][i],data['EMA40'][i],data['EMA45'][i],data['EMA50'][i],data['EMA60'][i])
-            close = data['closeV'][i] 
+        for i in self.__data.index:
+            cmin = min( 
+                    self.__data['EMA5'][i], self.__data['EMA8'][i],
+                    self.__data['EMA10'][i],self.__data['EMA12'][i],
+                    self.__data['EMA15'][i]
+                    )  
+            cmax = max(
+                    self.__data['EMA30'][i],self.__data['EMA35'][i],
+                    self.__data['EMA40'][i],self.__data['EMA45'][i],
+                    self.__data['EMA50'][i],self.__data['EMA60'][i]
+                    )
+            close = self.__data['closeV'][i] 
 
             if(cmin > cmax):
                 if(pos == 0):
                     bp = close
                     pos = 1
-                    print('Buying at {}, data:{} '.format(bp,data['data'][i]))
+                    print('Buying at {}, data:{} '.format(bp,self.__data['data'][i]))
 
             elif(cmin < cmax):
                 if(pos == 1):
                     sp = close
                     pos = 0
-                    print('selling at {}, data:{} '.format(sp,data['data'][i]))
+                    print('selling at {}, data:{} '.format(sp,self.__data['data'][i]))
                     pc = (sp/bp - 1)*100
-                    percentChange.append(pc)
+                    self.percentChange.append(pc)
 
-            if(num == data['closeV'].count()-1 and pos == 1):
+            if(num == self.__data['closeV'].count()-1 and pos == 1):
                 pos = 0
                 sp = close
-                print('executing sell at end of data, price: {}, data:{}'.format(sp,data['data'][i]))
+                print('executing sell at end of data, price: {}, data:{}'.format(sp,self.__data['data'][i]))
                 pc = (sp/bp - 1)*100
-                percentChange.append(pc)
+                self.percentChange.append(pc)
 
             num+=1
 
         return True
 
     def indicators(self):
+        self.indktrs = {
+                "gains" : 0,
+                "ng" : 0,
+                "losses" : 0,
+                "nl" : 0,
+                "totalR" : 1,
+                "avgGain": 0,
+                "maxR": 0,
+                "avgLoss": 0,
+                "maxL": 0,
+                "ratio": 0,
+                "battingAvg": 0
+            }  
 
-        for i in percentChange:
-            if(i>0):
-                gains+=i
-                ng+=1
+        for prc in self.percentChange:
+            if(prc>0):
+                self.indktrs["gains"]+=i
+                self.indktrs["ng"]+=1
             else:
-                losses+=i
-                nl+=1
-            totalR=totalR*((i/100)+1)
+                self.indktrs["losses"]+=i
+                self.indktrs["nl"]+=1
+            self.indktrs["totalR"]=self.indktrs["totalR"]*((prc/100)+1)
 
-        totalR=round((totalR-1)*100,2)
+        self.indktrs["totalR"]=round((self.indktrs["totalR"]-1)*100,2)
 
         if(ng>0):
-            avgGain=gains/ng
-            maxR=str(max(percentChange))
+            self.indktrs["avgGain"]=self.indktrs["gains"]/self.indktrs["ng"]
+            self.indktrs["maxR"]=str(max(self.percentChange))
         else:
-            avgGain=0
-            maxR="undefined"
+            self.indktrs["avgGain"]=0
+            self.indktrs["maxR"]="undefined"
 
         if(nl>0):
-            avgLoss=losses/nl
-            maxL=str(min(percentChange))
-            ratio=str(-avgGain/avgLoss)
+            self.indktrs["avgLoss"]=losses/nl
+            self.indktrs["maxL"] = str(min(self.percentChange))
+            self.indktrs["ratio"]=str(-self.indktrs["avgGain"]/self.indktrs["avgLoss"])
         else:
-            avgLoss=0
+            self.indktrs["avgLoss"]=0
             maxL="undefined"
             ratio="inf"
 
         if(ng>0 or nl>0):
-            battingAvg=ng/(ng+nl)
+            self.indktrs["battingAvg"]=self.indktrs["ng"]/(self.indktrs["ng"]+self.indktrs["nl"])
         else:
-            battingAvg=0
+            self.indktrs["battingAvg"]=0
 
         print()
-        print("Results for stocks going back to "+str(data['data'][0])+", Sample size: "+str(ng+nl)+" trades")
-        print("EMAs used: "+str(emasUsed))
-        print("Batting Avg: "+ str(battingAvg))
-        print("Gain/loss ratio: "+ ratio)
-        print("Average Gain: "+ str(avgGain))
-        print("Average Loss: "+ str(avgLoss))
-        print("Max Return: "+ maxR)
-        print("Max Loss: "+ maxL)
-        print("Total return over "+str(ng+nl)+ " trades: "+ str(totalR)+"%" )
+        print("Results for stocks going back to "+str(self.__data['data'][0])+", Sample size: "+str(self.indktrs["ng"]+self.indktrs["nl"])+" trades")
+        print("EMAs used: "+str(self.emasUsed))
+        print("Batting Avg: "+ str(self.indktrs["battingAvg"]))
+        print("Gain/loss ratio: "+ self.indktrs["ratio"])
+        print("Average Gain: "+ str(self.indktrs["avgGain"]))
+        print("Average Loss: "+ str(self.indktrs["avgLoss"]))
+        print("Max Return: "+ self.indktrs["maxR"])
+        print("Max Loss: "+ self.indktrs["maxL"])
+        print("Total return over "+str(self.indktrs["ng"]+self.indktrs["nl"])+ " trades: "+ str(self.indktrs["totalR"])+"%" )
         print()
+
+        return self.indktrs
 
 def main():
     dateStart = '01-01-2020'
     dateEnd = '16-07-2020'
     instr = 'CDPROJEKT'
-    i_start = 20 # 10 to 20 of gpw stocks 
-    i_stop =  30
+    i_start = 50 # 26 sie wysypało sprawdzic to 
+    i_stop =  55
     emasUsed = [3,5,8,10,12,15,30,35,40,45,50,60]
 
     gpwdt = GPW_DataLoader(instr,dateStart,dateEnd)
