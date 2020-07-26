@@ -1,3 +1,25 @@
+# -----------------------------------------------------------
+# Poland stocks market symaulator private project, 
+# include data loader and technical strategies 
+#  
+#
+# (C) 2020 Dawid Mudry, Tychy, Poland
+# Released under GNU Public License (GPL)
+# email: mudri656@gmail.com
+# -----------------------------------------------------------
+
+# TO DO:
+# Finish stocks scanner class.  
+# Add docstrings to methods. 
+# Implement abstract class  in strategy class. 
+# Implement green line breakout.
+# Do something with indicators (more reusable code).  
+# Expand abstract class (??).
+# Create IBD Realative strength indicator. 
+# Implement WIG index function.
+# Better plots (more reusable code).
+# Fix forward loop in GpwDataLoader class.
+
 import requests as req
 import bs4
 import pandas as pd
@@ -19,6 +41,7 @@ class GpwDataLoader:
 
 
     def __arch_stocks(self, instrument, data):
+        """Calculate the sum of value1 and value2."""
         try:
             resp = req.get(
                 'https://www.gpw.pl/archiwum-notowan-full?type=10&instrument=' 
@@ -53,6 +76,7 @@ class GpwDataLoader:
 
 
     def save_csv(self, path, df):
+        """Calculate the sum of value1 and value2."""
         for i in range(len(df)):
             if(df.iloc[i,2] == 'no data' and i != 0 ):
                 df.iloc[i,[2,3,7]] = df.iloc[i-1,[2,3,7]]
@@ -97,13 +121,13 @@ class GpwDataLoader:
 
 
 
-
     def update_all_csv(self):
         excel_gpw_stocks = 'gpwStocks.xlsx'
         path = 'company/'
         gpw_stocks = pd.read_excel(excel_gpw_stocks, index_col=False) 
 
-        for i in range(1):   #len(gpw_stocks)):
+        for i in range(len(gpw_stocks)):
+            print("###### {} #######".format(i))
             company_name = gpw_stocks.iloc[i,0]  # 11bit-studio ISIN
             self.instrument = company_name
             self.update_csv(path + str(gpw_stocks.iloc[i,0] + '.csv'))
@@ -161,13 +185,14 @@ class GpwDataLoader:
 
 #--------------------------------------------------------------------------------------------------------------------------------------------
 
+
 class AbcEngine(ABC):
 
     def __init__(self, path, cash):
         self.path = path
         self.__data = self.__read_csv()
         self.cash = cash
-    
+   
 
 
 
@@ -197,16 +222,43 @@ class AbcEngine(ABC):
     def indicators(self):
         pass
 
+#--------------------------------------------------------------------------------------------------------------------------------------------
 
 
-
-class simulatorEngine():
+class SimulatorEngine():
 
 
     def __init__(self, path, cash):
         self.path = path
         self.__data = self.__read_csv()
         self.cash = cash
+
+
+
+
+    def rs_rating(self): 
+        close_0 = self.__data.iloc[-1]['closeV'] #current close value
+        close_m64 = self.__data.iloc[-64]['closeV']
+        close_m128 = self.__data.iloc[-128]['closeV']
+        close_m189 = self.__data.iloc[-189]['closeV']
+
+        # in the end 256, now 206 because first verse is no data: 01.01.2020
+        close_m256 = self.__data.iloc[-206]['closeV']  
+
+        print(close_0,close_m64,close_m128,close_m256)
+        # normilized 
+        # rs_rt = (((close_0 - close_m64)/close_m64)*0.4 
+            # + ((close_0 - close_m128)/close_m128)*0.2   
+            # + ((close_0 - close_m189)/close_m189)*0.2  
+            # + ((close_0 - close_m256)/close_m256)*0.2)*100  # in range 0-100
+
+        rs_rt = ((close_0/close_m64)*0.4 
+            + (close_0/close_m128)*0.2   
+            + (close_0/close_m189)*0.2  
+            + (close_0/close_m256)*0.2)*100  # in range 0-100
+        print(rs_rt)
+
+        return rs_rt
 
 
 
@@ -330,34 +382,34 @@ class simulatorEngine():
 
         for prc in self.percent_change:
             if(prc>0):
-                self.indktrs["gains"] += i
+                self.indktrs["gains"] += prc
                 self.indktrs["ng"] += 1
             else:
-                self.indktrs["losses"] += i
+                self.indktrs["losses"] += prc
                 self.indktrs["nl"] += 1
             self.indktrs["total_r"] = self.indktrs["total_r"]*((prc/100)+1)
 
         self.indktrs["total_r"] = round((self.indktrs["total_r"]-1)*100,2)
 
-        if(ng>0):
+        if(self.indktrs["ng"]>0):
             self.indktrs["avg_gain"] = self.indktrs["gains"]/self.indktrs["ng"]
             self.indktrs["max_r"] = str(max(self.percent_change))
         else:
             self.indktrs["avg_gain"] = 0
             self.indktrs["max_r"] = "undefined"
 
-        if(nl>0):
-            self.indktrs["avg_loss"] = losses/nl
+        if(self.indktrs["nl"] > 0):
+            self.indktrs["avg_loss"] = self.indktrs["losses"]/self.indktrs["nl"]
             self.indktrs["max_l"] = str(min(self.percent_change))
             self.indktrs["ratio"] = str(
                 -self.indktrs["avg_gain"]/self.indktrs["avg_loss"])
 
         else:
             self.indktrs["avg_loss"] = 0 
-            max_l="undefined"
-            ratio="inf"
+            max_l = "undefined"
+            ratio = "inf"
 
-        if(ng>0 or nl>0):
+        if(self.indktrs["ng"] > 0 or self.indktrs["nl"] > 0):
             self.indktrs["batting_avg"] = self.indktrs["ng"]/(self.indktrs["ng"]+
                 self.indktrs["nl"]
                 )
@@ -389,6 +441,47 @@ class simulatorEngine():
 
         return self.indktrs
 
+#--------------------------------------------------------------------------------------------------------------------------------------------
+
+
+class StocksScanner():
+
+    def __init__(self, path, cash):
+        pass
+
+
+
+
+    def __read_csv(self):
+        df = pd.read_csv(self.path)
+        df.closeV = pd.to_numeric(df.closeV)
+        return df
+
+
+
+
+    def calculate_sma(self, data, windows):
+        data['MA'+str(win)] = data['closeV'].rolling(window=win).mean()
+        return data
+
+
+
+
+    def stocksScaner(self):
+        excel_gpw_stocks = 'gpwStocks.xlsx'
+        gpw_stocks = pd.read_excel(excel_gpw_stocks, index_col=False)
+
+        for i  in range(i_start,i_stop): #(len(gpw_stocks))
+            print('Now: {}'.format(str(gpw_stocks.iloc[i,0])))
+            company_name = gpw_stocks.iloc[i,0]  
+            self.path = 'campany/' + company_name
+            df = self.__read_csv()
+
+            # calulate SMA 150 days and 200 days 
+            df = self.calculate_sma(df,150)
+            df = self.calculate_sma(df,200)
+
+#--------------------------------------------------------------------------------------------------------------------------------------------
 
 
 
@@ -397,15 +490,19 @@ def main():
     date_end = '16-07-2020'
     instr = 'CDPROJEKT'
     i_start = 26# 26 sie wysypało sprawdzic to 
-    i_stop =  27
+    # i_stop =  27
     emas_used = [3,5,8,10,12,15,30,35,40,45,50,60]
 
     gpwdt = GpwDataLoader(instr,date_start,date_end)
-    gpwdt.update_all_csv()
-    # eng = simulatorEngine('11BIT.csv')
+    # print(gpwdt.save_csv.__doc__)
+    # gpwdt.update_all_csv()
+    # eng = SimulatorEngine('company/11BIT.csv',10000)
+    # eng.rs_rating()
+
     # eng.calculate_ema(emas_used)
     # eng.make_plot()
-    # gpwdt.read_gpw_stocks(date_start,date_end,i_start ,i_stop)
+    # eng.strategy()
+    # eng.indicators()
 
 
 
