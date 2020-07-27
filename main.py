@@ -44,11 +44,11 @@ class GpwDataLoader:
         """Calculate the sum of value1 and value2."""
         try:
             resp = req.get(
-                'https://www.gpw.pl/archiwum-notowan-full?type=10&instrument=' 
+                'https://www.gpw.pl/archiwum-notowan-full?type=1&instrument=' 
                 + instrument+'&date=' 
                 + data
                 )
-
+            print(resp)
             soup = bs4.BeautifulSoup(resp.text, "xml")
             table_footable = soup.find_all(
                 'table',
@@ -70,7 +70,6 @@ class GpwDataLoader:
                 ]
 
         return arch_stats
-
 
 
 
@@ -183,6 +182,38 @@ class GpwDataLoader:
             df = self.collect_data(date_start, date_end)
             self.save_csv(str(gpw_stocks.iloc[i,0]) + '.csv',df)
 
+
+
+    #funckja sciągająca psuje poprawić 
+    def get_wig(self):
+        self.instrument = 'WIG1'
+        # df = self.collect_data(self.date_start, self.date_end)
+        df = pd.read_csv('WIG.csv')
+
+        for i in range(len(df)):
+            for j in range(11,3,-1):
+                # print("------------------")
+                # print(df.iloc[i, j])
+                # print(df.iloc[i, j-1] )
+                # print("------------------")
+                df.iloc[i, j] = df.iloc[i, j-1] 
+            df.iloc[i,3] = 'index'
+        
+        for i in range(len(df)):
+            if(df.iloc[i,5] == 'no data' and i != 0 ):
+                df.iloc[i, 7] = df.iloc[i-1, 7]
+
+            elif(i == 0):
+                df.iloc[i, 7] = df.iloc[i+1, 7]
+
+        self.save_csv('WIGpop.csv',df)
+
+
+
+
+    def update_wig(self):
+        self.update_csv('company/wig.csv')
+         
 #--------------------------------------------------------------------------------------------------------------------------------------------
 
 
@@ -232,33 +263,6 @@ class SimulatorEngine():
         self.path = path
         self.__data = self.__read_csv()
         self.cash = cash
-
-
-
-
-    def rs_rating(self): 
-        close_0 = self.__data.iloc[-1]['closeV'] #current close value
-        close_m64 = self.__data.iloc[-64]['closeV']
-        close_m128 = self.__data.iloc[-128]['closeV']
-        close_m189 = self.__data.iloc[-189]['closeV']
-
-        # in the end 256, now 206 because first verse is no data: 01.01.2020
-        close_m256 = self.__data.iloc[-206]['closeV']  
-
-        print(close_0,close_m64,close_m128,close_m256)
-        # normilized 
-        # rs_rt = (((close_0 - close_m64)/close_m64)*0.4 
-            # + ((close_0 - close_m128)/close_m128)*0.2   
-            # + ((close_0 - close_m189)/close_m189)*0.2  
-            # + ((close_0 - close_m256)/close_m256)*0.2)*100  # in range 0-100
-
-        rs_rt = ((close_0/close_m64)*0.4 
-            + (close_0/close_m128)*0.2   
-            + (close_0/close_m189)*0.2  
-            + (close_0/close_m256)*0.2)*100  # in range 0-100
-        print(rs_rt)
-
-        return rs_rt
 
 
 
@@ -445,9 +449,40 @@ class SimulatorEngine():
 
 
 class StocksScanner():
-
-    def __init__(self, path, cash):
+    
+    def __init__(self, path):
+        self.path = path
+        self.__data = self.__read_csv()
+    
+    def calculate_stock_rs_rating(self):
+        # rs_stck = rs_rating(stck_path)
+        # rs_wig = rs_rating(wig_path)
         pass
+
+
+    def rs_rating(self): 
+        close_0 = self.__data.iloc[-1]['closeV'] #current close value
+        close_m64 = self.__data.iloc[-64]['closeV']
+        close_m128 = self.__data.iloc[-128]['closeV']
+        close_m189 = self.__data.iloc[-189]['closeV']
+
+        # in the end 256, now 206 because first verse is no data: 01.01.2020
+        close_m256 = self.__data.iloc[-206]['closeV']  
+
+        print(close_0,close_m64,close_m128,close_m256)
+        # normilized 
+        # rs_rt = (((close_0 - close_m64)/close_m64)*0.4 
+            # + ((close_0 - close_m128)/close_m128)*0.2   
+            # + ((close_0 - close_m189)/close_m189)*0.2  
+            # + ((close_0 - close_m256)/close_m256)*0.2)*100  # in range 0-100
+
+        rs_rt = ((close_0/close_m64)*0.4 
+            + (close_0/close_m128)*0.2   
+            + (close_0/close_m189)*0.2  
+            + (close_0/close_m256)*0.2)*100  # in range 0-100
+        print(rs_rt)
+
+        return rs_rt
 
 
 
@@ -467,7 +502,7 @@ class StocksScanner():
 
 
 
-    def stocksScaner(self):
+    def scan_all(self):
         excel_gpw_stocks = 'gpwStocks.xlsx'
         gpw_stocks = pd.read_excel(excel_gpw_stocks, index_col=False)
 
@@ -487,17 +522,23 @@ class StocksScanner():
 
 def main():
     date_start = '01-01-2020'
-    date_end = '16-07-2020'
+    date_end = '27-07-2020'
     instr = 'CDPROJEKT'
     i_start = 26# 26 sie wysypało sprawdzic to 
     # i_stop =  27
     emas_used = [3,5,8,10,12,15,30,35,40,45,50,60]
 
-    gpwdt = GpwDataLoader(instr,date_start,date_end)
+    # gpwdt = GpwDataLoader(instr,date_start,date_end)
+    # gpwdt.get_wig()
     # print(gpwdt.save_csv.__doc__)
     # gpwdt.update_all_csv()
-    # eng = SimulatorEngine('company/11BIT.csv',10000)
+    # eng = SimulatorEngine('WIGpop.csv',10000)
     # eng.rs_rating()
+    wigScan = StocksScanner('WIGpop.csv')
+    wigScan.rs_rating()
+
+    bitScan = StocksScanner('company/11BIT.csv')
+    bitScan.rs_rating()
 
     # eng.calculate_ema(emas_used)
     # eng.make_plot()
