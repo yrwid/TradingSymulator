@@ -40,15 +40,15 @@ class GpwDataLoader:
 
 
 
-    def __arch_stocks(self, instrument, data):
+    def __arch_stocks(self, instrument, data, instrument_type):
         """Calculate the sum of value1 and value2."""
         try:
             resp = req.get(
-                'https://www.gpw.pl/archiwum-notowan-full?type=1&instrument=' 
+                instrument_type 
                 + instrument+'&date=' 
                 + data
                 )
-            print(resp)
+            # print(resp)
             soup = bs4.BeautifulSoup(resp.text, "xml")
             table_footable = soup.find_all(
                 'table',
@@ -69,22 +69,49 @@ class GpwDataLoader:
                 ,'no data','no data'
                 ]
 
+        # print(len(arch_stats))
+        # not good       
+        if len(arch_stats) == 11:
+            arch_stats.insert(3,'index')
+
         return arch_stats
 
 
 
-
-    def save_csv(self, path, df):
+#changed to index 
+    def save_csv(self, path, df, instrument_type):
         """Calculate the sum of value1 and value2."""
+        print(df)
+        # if instrument_type == 'stock':
         for i in range(len(df)):
             if(df.iloc[i,2] == 'no data' and i != 0 ):
                 df.iloc[i,[2,3,7]] = df.iloc[i-1,[2,3,7]]
 
-            elif(i == 0):
+            elif(i == 0 and df.iloc[i,2] == 'no data'):
                 for j in range(130): # to fix in future 
                     if(df.iloc[j,2] != 'no data'):
+                        print(j)
                         df.iloc[0,[2,3,7]] = df.iloc[j,[2,3,4]]
                         break
+
+        # elif instrument_type == 'index':
+        #     for i in range(len(df)):
+        #         for j in range(11,3,-1):
+        #             # print("------------------")
+        #             # print(df.iloc[i, j])
+        #             # print(df.iloc[i, j-1] )
+        #             # print("------------------")
+        #             df.iloc[i, j] = df.iloc[i, j-1] 
+        #     df.iloc[i,3] = 'index'
+
+        #     for i in range(len(df)):
+        #         if(df.iloc[i,5] == 'no data' and i != 0 ):
+        #             df.iloc[i, 7] = df.iloc[i-1, 7]
+
+        #         elif(i == 0):
+        #             df.iloc[i, 7] = df.iloc[i+1, 7]
+
+        print(df)
         df.closeV = pd.to_numeric(df.closeV)
         df.to_csv(path, index = False) 
 
@@ -136,7 +163,7 @@ class GpwDataLoader:
 
 
 
-    def collect_data(self, date_start, date_end):
+    def collect_data(self, date_start, date_end, instrument_type):
         start = dt.strptime(date_start, '%d-%m-%Y')
         stop = dt.strptime(date_end, '%d-%m-%Y')
         delta = timedelta(days=1) 
@@ -147,13 +174,14 @@ class GpwDataLoader:
             print("Downloading {} data... ".format(start.date()))
             stats = self.__arch_stocks(
                 self.instrument,
-                start.strftime('%d-%m-%Y')
+                start.strftime('%d-%m-%Y'),
+                instrument_type 
                 )
 
             tmp.append(stats)
             start = start + delta # increase day one by one
             print("Done.")
-            
+        print(tmp)
         df = pd.DataFrame(tmp,columns=[
             'Name','data','ISIN','currency','openV',
             'maxV','minV','closeV','valueChagPer',
@@ -179,34 +207,34 @@ class GpwDataLoader:
             print('Now: {}'.format(str(gpw_stocks.iloc[i,0])))
             company_name = gpw_stocks.iloc[i,0]  # 11bit-studio ISIN
             self.instrument = company_name
-            df = self.collect_data(date_start, date_end)
-            self.save_csv(str(gpw_stocks.iloc[i,0]) + '.csv',df)
+            df = self.collect_data(date_start, date_end, 'https://www.gpw.pl/archiwum-notowan-full?type=10&instrument=')
+            self.save_csv(str(gpw_stocks.iloc[i,0]) + '.csv', df, 'stock')
 
 
 
     #funckja sciągająca psuje poprawić 
     def get_wig(self):
-        self.instrument = 'WIG1'
-        # df = self.collect_data(self.date_start, self.date_end)
-        df = pd.read_csv('WIG.csv')
+        self.instrument = 'WIG'
+        df = self.collect_data(self.date_start, self.date_end, 'https://www.gpw.pl/archiwum-notowan-full?type=1&instrument=')
+        # df = pd.read_csv('WIG.csv')
 
-        for i in range(len(df)):
-            for j in range(11,3,-1):
-                # print("------------------")
-                # print(df.iloc[i, j])
-                # print(df.iloc[i, j-1] )
-                # print("------------------")
-                df.iloc[i, j] = df.iloc[i, j-1] 
-            df.iloc[i,3] = 'index'
+        # for i in range(len(df)):
+        #     for j in range(11,3,-1):
+        #         # print("------------------")
+        #         # print(df.iloc[i, j])
+        #         # print(df.iloc[i, j-1] )
+        #         # print("------------------")
+        #         df.iloc[i, j] = df.iloc[i, j-1] 
+        #     df.iloc[i,3] = 'index'
         
-        for i in range(len(df)):
-            if(df.iloc[i,5] == 'no data' and i != 0 ):
-                df.iloc[i, 7] = df.iloc[i-1, 7]
+        # for i in range(len(df)):
+        #     if(df.iloc[i,5] == 'no data' and i != 0 ):
+        #         df.iloc[i, 7] = df.iloc[i-1, 7]
 
-            elif(i == 0):
-                df.iloc[i, 7] = df.iloc[i+1, 7]
-
-        self.save_csv('WIGpop.csv',df)
+        #     elif(i == 0):
+        #         df.iloc[i, 7] = df.iloc[i+1, 7]
+        # print?(df)
+        self.save_csv('WIG.csv', df, 'index')
 
 
 
@@ -522,23 +550,25 @@ class StocksScanner():
 
 def main():
     date_start = '01-01-2020'
-    date_end = '27-07-2020'
+    date_end = '28-07-2020'
     instr = 'CDPROJEKT'
     i_start = 26# 26 sie wysypało sprawdzic to 
     # i_stop =  27
     emas_used = [3,5,8,10,12,15,30,35,40,45,50,60]
 
-    # gpwdt = GpwDataLoader(instr,date_start,date_end)
-    # gpwdt.get_wig()
+    gpwdt = GpwDataLoader(instr,date_start,date_end)
+    gpwdt.get_wig()
+    # df  = gpwdt.collect_data(date_start, date_end, 'https://www.gpw.pl/archiwum-notowan-full?type=10&instrument=')
+    # gpwdt.save_csv('WIG.csv', df, 'stock' )
     # print(gpwdt.save_csv.__doc__)
     # gpwdt.update_all_csv()
     # eng = SimulatorEngine('WIGpop.csv',10000)
     # eng.rs_rating()
-    wigScan = StocksScanner('WIGpop.csv')
-    wigScan.rs_rating()
+    # wigScan = StocksScanner('WIGpop.csv')
+    # wigScan.rs_rating()
 
-    bitScan = StocksScanner('company/11BIT.csv')
-    bitScan.rs_rating()
+    # bitScan = StocksScanner('company/11BIT.csv')
+    # bitScan.rs_rating()
 
     # eng.calculate_ema(emas_used)
     # eng.make_plot()
