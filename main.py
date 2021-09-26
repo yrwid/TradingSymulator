@@ -75,30 +75,20 @@ class AbcEngine(ABC):
 
 
 class SimulatorEngine():
-
-
     def __init__(self, path, cash):
         self.path = path
-        self.__data = self.__read_csv()
+        self.__data = self.__read_csv()[::-1]
+        print(self.__data.keys())
         self.cash = cash
-
-
-
 
     def __read_csv(self):
         df = pd.read_csv(self.path)
         df.closeV = pd.to_numeric(df.closeV)
         return df
 
-
-
-
     def calculate_sma(self, windows):
-        self.__data['MA'+str(win)] = self.__data['closeV'].rolling(window=win).mean()
+        self.__data['MA'+str(windows)] = self.__data['closeV'].rolling(window=windows).mean()
         return True
-
-
-
 
     def calculate_ema(self, emas_used):
         self.emas_used = emas_used
@@ -111,24 +101,20 @@ class SimulatorEngine():
 
         return True
 
-
-
-
     def make_plot(self):
         cv=['closeV']
         for ema in self.emas_used:
             cv.append('EMA'+str(ema))
-        self.__data.plot(x ='data', y=cv, kind = 'line',marker = '.')
+        self.__data.plot(x='data', y=cv, kind = 'line', marker = '.')
         plt.show()
         return True
-
-
-
 
     def strategy(self):
         pos = 0
         num = 0
         self.percent_change = list()
+
+        print(self.__data)
 
         for i in self.__data.index:
             cmin = min( 
@@ -183,9 +169,6 @@ class SimulatorEngine():
             num+=1
 
         return True
-
-
-
 
     def indicators(self):
         self.indktrs = {
@@ -338,21 +321,21 @@ class StocksScanner():
 
 
 def main():
-    date_start = '04-01-2013'
-    date_end = '26-09-2021'
-    instr = 'CDPROJEKT'
+    # date_start = '04-01-2013'
+    # date_end = '26-09-2021'
+    # instr = 'CDPROJEKT'
     i_start = 26# 26 sie wysypało sprawdzic to 
     # i_stop =  27
     emas_used = [3,5,8,10,12,15,30,35,40,45,50,60]
 
-    collector = gpwDL(instr, date_start, date_end)
-    collector.read_gpw_stock(instr)
+    # collector = gpwDL(instr, date_start, date_end)
+    # collector.read_gpw_stock(instr)
     # collector.update_csv(instr + ".csv")
     # df  = gpwdt.collect_data(date_start, date_end, 'https://www.gpw.pl/archiwum-notowan-full?type=10&instrument=')
     # gpwdt.save_csv('WIG.csv', df, 'stock' )
     # print(gpwdt.save_csv.__doc__)
     # gpwdt.update_all_csv()
-    # eng = SimulatorEngine('WIGpop.csv',10000)
+    eng = SimulatorEngine('cdprojekt.csv', 10000)
     # eng.rs_rating()
     # wigScan = StocksScanner('WIGpop.csv')
     # wigScan.rs_rating()
@@ -360,10 +343,10 @@ def main():
     # bitScan = StocksScanner('company/11BIT.csv')
     # bitScan.rs_rating()
 
-    # eng.calculate_ema(emas_used)
-    # eng.make_plot()
-    # eng.strategy()
-    # eng.indicators()
+    eng.calculate_ema(emas_used)
+    eng.make_plot()
+    eng.strategy()
+    eng.indicators()
 
 
 
