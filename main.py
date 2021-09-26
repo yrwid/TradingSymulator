@@ -29,220 +29,10 @@ from datetime import timedelta
 from datetime import date
 import time
 from abc import ABC, abstractmethod
+req.packages.urllib3.util.ssl_.DEFAULT_CIPHERS = 'ALL:@SECLEVEL=1'
 
-class GpwDataLoader:
-
-    def __init__(self, instrument, date_start,date_end):
-        self.instrument = instrument
-        self.date_start = date_start
-        self.date_end = date_end
-
-
-
-
-    def __arch_stocks(self, instrument, data, instrument_type):
-        """Calculate the sum of value1 and value2."""
-        try:
-            resp = req.get(
-                instrument_type 
-                + instrument+'&date=' 
-                + data
-                )
-            # print(resp)
-            soup = bs4.BeautifulSoup(resp.text, "xml")
-            table_footable = soup.find_all(
-                'table',
-                {'class' : 'table footable'}
-                )
-
-            tr = table_footable[0].find_all('tr')
-            table  = tr[1].text.replace(",",".").replace(" ","")
-            table_strings = list(map(lambda x: x.strip(), table.split("\n")))
-            arch_stats = [string for string in table_strings if string]
-
-        except IndexError as e:
-            
-            print("Exeption occured")
-            arch_stats = [
-                instrument,data,'no data','no data','no data',
-                'no data','no data','no data','no data','no data'
-                ,'no data','no data'
-                ]
-
-        # print(len(arch_stats))
-        # not good       
-        if len(arch_stats) == 11:
-            arch_stats.insert(3,'index')
-
-        return arch_stats
-
-
-
-#changed to index 
-    def save_csv(self, path, df, instrument_type):
-        """Calculate the sum of value1 and value2."""
-        print(df)
-        # if instrument_type == 'stock':
-        for i in range(len(df)):
-            if(df.iloc[i,2] == 'no data' and i != 0 ):
-                df.iloc[i,[2,3,7]] = df.iloc[i-1,[2,3,7]]
-
-            elif(i == 0 and df.iloc[i,2] == 'no data'):
-                for j in range(130): # to fix in future 
-                    if(df.iloc[j,2] != 'no data'):
-                        print(j)
-                        df.iloc[0,[2,3,7]] = df.iloc[j,[2,3,4]]
-                        break
-
-        # elif instrument_type == 'index':
-        #     for i in range(len(df)):
-        #         for j in range(11,3,-1):
-        #             # print("------------------")
-        #             # print(df.iloc[i, j])
-        #             # print(df.iloc[i, j-1] )
-        #             # print("------------------")
-        #             df.iloc[i, j] = df.iloc[i, j-1] 
-        #     df.iloc[i,3] = 'index'
-
-        #     for i in range(len(df)):
-        #         if(df.iloc[i,5] == 'no data' and i != 0 ):
-        #             df.iloc[i, 7] = df.iloc[i-1, 7]
-
-        #         elif(i == 0):
-        #             df.iloc[i, 7] = df.iloc[i+1, 7]
-
-        print(df)
-        df.closeV = pd.to_numeric(df.closeV)
-        df.to_csv(path, index = False) 
-
-
-
-
-    def update_csv(self, path):
-        with open(path, "r") as f1:
-            last_line = f1.readlines()[-1]
-        
-        temp_tuple = tuple(item for item in last_line.split(","))
-
-        start_date = (
-            (dt.strptime(temp_tuple[1], '%d-%m-%Y') + timedelta(days=1)).date()
-            ).strftime('%d-%m-%Y')
-
-        update_dates = list(
-            [str(start_date) , str(date.today().strftime('%d-%m-%Y') )]
-            )
-
-        df = self.collect_data(update_dates[0], update_dates[1])
-
-        for i in range(len(df)):
-            if(df.iloc[i,2] == 'no data' and i != 0 ):
-                df.iloc[i,[2,3,7]] = df.iloc[i-1,[2,3,7]]
-
-            elif(i == 0):
-                df.iloc[i,2] = temp_tuple[2] 
-                df.iloc[i,3] = temp_tuple[3]
-                df.iloc[i,7] = temp_tuple[7]
-        df.to_csv(path, mode='a', header=False, index = False)
-
-
-
-
-    def update_all_csv(self):
-        excel_gpw_stocks = 'gpwStocks.xlsx'
-        path = 'company/'
-        gpw_stocks = pd.read_excel(excel_gpw_stocks, index_col=False) 
-
-        for i in range(len(gpw_stocks)):
-            print("###### {} #######".format(i))
-            company_name = gpw_stocks.iloc[i,0]  # 11bit-studio ISIN
-            self.instrument = company_name
-            self.update_csv(path + str(gpw_stocks.iloc[i,0] + '.csv'))
-        
-        return True
-
-
-
-
-    def collect_data(self, date_start, date_end, instrument_type):
-        start = dt.strptime(date_start, '%d-%m-%Y')
-        stop = dt.strptime(date_end, '%d-%m-%Y')
-        delta = timedelta(days=1) 
-        df = pd.DataFrame([])
-        tmp = list()
-
-        while start <= stop:
-            print("Downloading {} data... ".format(start.date()))
-            stats = self.__arch_stocks(
-                self.instrument,
-                start.strftime('%d-%m-%Y'),
-                instrument_type 
-                )
-
-            tmp.append(stats)
-            start = start + delta # increase day one by one
-            print("Done.")
-        print(tmp)
-        df = pd.DataFrame(tmp,columns=[
-            'Name','data','ISIN','currency','openV',
-            'maxV','minV','closeV','valueChagPer',
-            'vol','amountOfDeals','valueOfDeals']
-            )
-
-        col = [
-            'openV','maxV','minV','closeV',
-            'valueChagPer','vol','amountOfDeals','valueOfDeals'
-            ]
-
-        df[col] = df[col].astype(float,errors = 'ignore')
-        return df
-
-
-
-
-    def read_gpw_stocks(self, date_start, date_end, i_start, i_stop):
-        excel_gpw_stocks = 'gpwStocks.xlsx'
-        gpw_stocks = pd.read_excel(excel_gpw_stocks, index_col=False)
-
-        for i  in range(i_start,i_stop): #(len(gpw_stocks))
-            print('Now: {}'.format(str(gpw_stocks.iloc[i,0])))
-            company_name = gpw_stocks.iloc[i,0]  # 11bit-studio ISIN
-            self.instrument = company_name
-            df = self.collect_data(date_start, date_end, 'https://www.gpw.pl/archiwum-notowan-full?type=10&instrument=')
-            self.save_csv(str(gpw_stocks.iloc[i,0]) + '.csv', df, 'stock')
-
-
-
-    #funckja sciągająca psuje poprawić 
-    def get_wig(self):
-        self.instrument = 'WIG'
-        df = self.collect_data(self.date_start, self.date_end, 'https://www.gpw.pl/archiwum-notowan-full?type=1&instrument=')
-        # df = pd.read_csv('WIG.csv')
-
-        # for i in range(len(df)):
-        #     for j in range(11,3,-1):
-        #         # print("------------------")
-        #         # print(df.iloc[i, j])
-        #         # print(df.iloc[i, j-1] )
-        #         # print("------------------")
-        #         df.iloc[i, j] = df.iloc[i, j-1] 
-        #     df.iloc[i,3] = 'index'
-        
-        # for i in range(len(df)):
-        #     if(df.iloc[i,5] == 'no data' and i != 0 ):
-        #         df.iloc[i, 7] = df.iloc[i-1, 7]
-
-        #     elif(i == 0):
-        #         df.iloc[i, 7] = df.iloc[i+1, 7]
-        # print?(df)
-        self.save_csv('WIG.csv', df, 'index')
-
-
-
-
-    def update_wig(self):
-        self.update_csv('company/wig.csv')
-         
-#--------------------------------------------------------------------------------------------------------------------------------------------
+# local imports
+from gpwCollector import GpwDataLoader as gpwDL
 
 
 class AbcEngine(ABC):
@@ -547,17 +337,17 @@ class StocksScanner():
 #--------------------------------------------------------------------------------------------------------------------------------------------
 
 
-
 def main():
-    date_start = '01-01-2020'
-    date_end = '28-07-2020'
+    date_start = '04-01-2013'
+    date_end = '26-09-2021'
     instr = 'CDPROJEKT'
     i_start = 26# 26 sie wysypało sprawdzic to 
     # i_stop =  27
     emas_used = [3,5,8,10,12,15,30,35,40,45,50,60]
 
-    gpwdt = GpwDataLoader(instr,date_start,date_end)
-    gpwdt.get_wig()
+    collector = gpwDL(instr, date_start, date_end)
+    collector.read_gpw_stock(instr)
+    # collector.update_csv(instr + ".csv")
     # df  = gpwdt.collect_data(date_start, date_end, 'https://www.gpw.pl/archiwum-notowan-full?type=10&instrument=')
     # gpwdt.save_csv('WIG.csv', df, 'stock' )
     # print(gpwdt.save_csv.__doc__)
