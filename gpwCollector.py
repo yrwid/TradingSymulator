@@ -80,15 +80,6 @@ class GpwDataLoader:
         df = self.collect_data(self.instrument, self.INSTRUMENT_TYPE_STOCK)
 
         for i in range(len(df)):
-            #     df.iloc[i, [2, 3, 7]] = df.iloc[i-1, [2, 3, 7]]
-            # elif(df.iloc[i,2] == 'no data'  and i == 0): #copy last known line 
-            #     df.iloc[i, 4] = temp_tuple[1] # copy open value
-            #     df.iloc[i, 7] = temp_tuple[2] # copy close value
-            #     df.iloc[i, 5] = temp_tuple[3] # copy max value
-            #     df.iloc[i, 6] = temp_tuple[4] # copy min value
-            #     df.iloc[i, 11] = temp_tuple[5] # copy deals value
-            #     df.iloc[i, 8] = temp_tuple[6][0:3] # copy percentage change, and get rid of \n
-
             data_time_object = dt.strptime(df.iloc[i,1],'%d-%m-%Y')
             df.iloc[i,1] = data_time_object.strftime('%Y-%m-%d')
 
@@ -98,8 +89,8 @@ class GpwDataLoader:
                 lines_to_drop.append(i)
 
         df = df.drop(labels=lines_to_drop, axis=0)
-
         df = df.drop(['Name', 'ISIN', 'currency', 'vol', 'amountOfDeals'], axis=1)
+
         df = df.rename(columns = {'data': 'data', 
                                  'openV': 'Otwarcie',
                                  'maxV' : 'Maks.',
@@ -109,7 +100,9 @@ class GpwDataLoader:
                                  'valueOfDeals' : 'Obrot (mln. zł)'
                                  }, inplace = False)
         df = df[["data", "Otwarcie", "closeV", "Maks.", "Min.", "Obrot (mln. zł)", "Zmiana (%)"]]
-        # df.iloc[0,0] = "TEST"
+        for i in range(len(df)):
+            for j in range(1,5):
+                df.iloc[i, j] = df.iloc[i, j][0:6]
         print(df)
         # df.to_csv(path, mode='a', header=False, index=False)
 
