@@ -321,21 +321,23 @@ class StocksScanner():
 
 
 def main():
-    # date_start = '04-01-2013'
-    # date_end = '26-09-2021'
-    # instr = 'CDPROJEKT'
+    date_start = '04-01-2013'
+    date_end = '26-09-2021'
+    instr = 'CDPROJEKT'
     i_start = 26# 26 sie wysypało sprawdzic to 
     # i_stop =  27
-    emas_used = [3,5,8,10,12,15,30,35,40,45,50,60]
+    # emas_used = [3,5,8,10,12,15,30,35,40,45,50,60]
 
-    # collector = gpwDL(instr, date_start, date_end)
+    collector = gpwDL(instr, date_start, date_end)
+    collector.update_csv("cdprojekt.csv");
+    # collector.flipCsvFile("cdprojekt.csv");
     # collector.read_gpw_stock(instr)
     # collector.update_csv(instr + ".csv")
     # df  = gpwdt.collect_data(date_start, date_end, 'https://www.gpw.pl/archiwum-notowan-full?type=10&instrument=')
     # gpwdt.save_csv('WIG.csv', df, 'stock' )
     # print(gpwdt.save_csv.__doc__)
     # gpwdt.update_all_csv()
-    eng = SimulatorEngine('cdprojekt.csv', 10000)
+    # eng = SimulatorEngine('cdprojekt.csv', 10000)
     # eng.rs_rating()
     # wigScan = StocksScanner('WIGpop.csv')
     # wigScan.rs_rating()
@@ -343,10 +345,10 @@ def main():
     # bitScan = StocksScanner('company/11BIT.csv')
     # bitScan.rs_rating()
 
-    eng.calculate_ema(emas_used)
-    eng.make_plot()
-    eng.strategy()
-    eng.indicators()
+    # eng.calculate_ema(emas_used)
+    # eng.make_plot()
+    # eng.strategy()
+    # eng.indicators()
 
 
 

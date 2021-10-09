@@ -62,32 +62,56 @@ class GpwDataLoader:
         df.closeV = pd.to_numeric(df.closeV)
         df.to_csv(path, index = False) 
 
+
     def update_csv(self, path):
         with open(path, "r") as f1:
             last_line = f1.readlines()[-1]
         
         temp_tuple = tuple(item for item in last_line.split(","))
-
         start_date = (
-            (dt.strptime(temp_tuple[1], '%d-%m-%Y') + timedelta(days=1)).date()
-            ).strftime('%d-%m-%Y')
+            (dt.strptime(temp_tuple[0], '%Y-%m-%d') + timedelta(days=1)).date()
+            ).strftime('%Y-%m-%d')
 
         update_dates = list(
-            [str(start_date) , str(date.today().strftime('%d-%m-%Y') )])
+            [str(start_date) , str(date.today().strftime('%Y-%m-%d') )])
 
         self.date_start = update_dates[0]
         self.date_end = update_dates[1]
         df = self.collect_data(self.instrument, self.INSTRUMENT_TYPE_STOCK)
 
         for i in range(len(df)):
-            if(df.iloc[i,2] == 'no data' and i != 0 ):
-                df.iloc[i, [2, 3, 7]] = df.iloc[i-1, [2, 3, 7]]
+            #     df.iloc[i, [2, 3, 7]] = df.iloc[i-1, [2, 3, 7]]
+            # elif(df.iloc[i,2] == 'no data'  and i == 0): #copy last known line 
+            #     df.iloc[i, 4] = temp_tuple[1] # copy open value
+            #     df.iloc[i, 7] = temp_tuple[2] # copy close value
+            #     df.iloc[i, 5] = temp_tuple[3] # copy max value
+            #     df.iloc[i, 6] = temp_tuple[4] # copy min value
+            #     df.iloc[i, 11] = temp_tuple[5] # copy deals value
+            #     df.iloc[i, 8] = temp_tuple[6][0:3] # copy percentage change, and get rid of \n
 
-            elif(i == 0):
-                df.iloc[i, 2] = temp_tuple[2]
-                df.iloc[i, 3] = temp_tuple[3]
-                df.iloc[i, 7] = temp_tuple[7]
-        df.to_csv(path, mode='a', header=False, index = False)
+            data_time_object = dt.strptime(df.iloc[i,1],'%d-%m-%Y')
+            df.iloc[i,1] = data_time_object.strftime('%Y-%m-%d')
+
+        lines_to_drop = list()
+        for i in range(len(df)):
+            if(df.iloc[i,2] == 'no data'):
+                lines_to_drop.append(i)
+
+        df = df.drop(labels=lines_to_drop, axis=0)
+
+        df = df.drop(['Name', 'ISIN', 'currency', 'vol', 'amountOfDeals'], axis=1)
+        df = df.rename(columns = {'data': 'data', 
+                                 'openV': 'Otwarcie',
+                                 'maxV' : 'Maks.',
+                                 'minV' : 'Min.',
+                                 'closeV' : 'closeV',
+                                 'valueChagPer' : 'Zmiana (%)',
+                                 'valueOfDeals' : 'Obrot (mln. zł)'
+                                 }, inplace = False)
+        df = df[["data", "Otwarcie", "closeV", "Maks.", "Min.", "Obrot (mln. zł)", "Zmiana (%)"]]
+        # df.iloc[0,0] = "TEST"
+        print(df)
+        # df.to_csv(path, mode='a', header=False, index=False)
 
     # Not used yet 
     def update_all_csv(self):
@@ -104,8 +128,8 @@ class GpwDataLoader:
         return True
 
     def collect_data(self, instrument, instrument_type):
-        start = dt.strptime(self.date_start, '%d-%m-%Y')
-        stop = dt.strptime(self.date_end, '%d-%m-%Y')
+        start = dt.strptime(self.date_start, '%Y-%m-%d')
+        stop = dt.strptime(self.date_end, '%Y-%m-%d')
         delta = timedelta(days=1) 
         df = pd.DataFrame([])
         tmp = list()
@@ -121,7 +145,7 @@ class GpwDataLoader:
             tmp.append(stats)
             start = start + delta # increase day one by one
             print("Done.")
-        print(tmp)
+
         df = pd.DataFrame(tmp,columns=[
             'Name','data','ISIN','currency','openV',
             'maxV','minV','closeV','valueChagPer',
@@ -150,3 +174,8 @@ class GpwDataLoader:
             self.instrument = company_name
             df = self.collect_data(date_start, date_end, 'https://www.gpw.pl/archiwum-notowan-full?type=10&instrument=')
             self.save_csv(str(gpw_stocks.iloc[i,0]) + '.csv', df, 'stock')
+
+    def flipCsvFile(self, path):
+        df = pd.read_csv(path)
+        df = df[::-1]
+        df.to_csv(path, header=True, index = False)
