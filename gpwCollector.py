@@ -1,3 +1,11 @@
+# -----------------------------------------------------------
+# This file contains class which can download and save.
+# Also adjust data from gpw i.e poland exchanges stock.
+#
+# (C) 2021 Dawid Mudry, Tychy, Poland
+# Released under GNU Public License (GPL)
+# -----------------------------------------------------------
+
 import requests as req
 import bs4
 import pandas as pd
@@ -48,19 +56,21 @@ class GpwDataLoader:
         return arch_stats
 
     def save_csv(self, path, df):
-        for i in range(len(df)):
-            if(df.iloc[i,2] == 'no data' and i != 0 ):
-                df.iloc[i,[2,3,7]] = df.iloc[i-1,[2,3,7]]
+        # To Be Done
+        pass
+        # for i in range(len(df)):
+        #     if(df.iloc[i,2] == 'no data' and i != 0 ):
+        #         df.iloc[i,[2,3,7]] = df.iloc[i-1,[2,3,7]]
 
-            elif(i == 0 and df.iloc[i,2] == 'no data'):
-                for j in range(130): # to fix in future 
-                    if(df.iloc[j,2] != 'no data'):
-                        print(j)
-                        df.iloc[0,[2,3,7]] = df.iloc[j,[2,3,4]]
-                        break
+        #     elif(i == 0 and df.iloc[i,2] == 'no data'):
+        #         for j in range(130): # to fix in future 
+        #             if(df.iloc[j,2] != 'no data'):
+        #                 print(j)
+        #                 df.iloc[0,[2,3,7]] = df.iloc[j,[2,3,4]]
+        #                 break
 
-        df.closeV = pd.to_numeric(df.closeV)
-        df.to_csv(path, index = False) 
+        # df.closeV = pd.to_numeric(df.closeV)
+        # df.to_csv(path, index = False) 
 
 
     def update_csv(self, path):
@@ -77,7 +87,7 @@ class GpwDataLoader:
 
         self.date_start = update_dates[0]
         self.date_end = update_dates[1]
-        df = self.collect_data(self.instrument, self.INSTRUMENT_TYPE_STOCK)
+        df = self.__collect_data(self.instrument, self.INSTRUMENT_TYPE_STOCK)
 
         for i in range(len(df)):
             data_time_object = dt.strptime(df.iloc[i,1],'%d-%m-%Y')
@@ -103,24 +113,27 @@ class GpwDataLoader:
         for i in range(len(df)):
             for j in range(1,5):
                 df.iloc[i, j] = df.iloc[i, j][0:6]
+            df.iloc[i, 5] = float(df.iloc[i, 5][0:2] + '.' + df.iloc[i, 5][2:4])
         print(df)
-        # df.to_csv(path, mode='a', header=False, index=False)
+        df.to_csv(path, mode='a', header=False, index=False)
 
-    # Not used yet 
+
     def update_all_csv(self):
-        excel_gpw_stocks = 'gpwStocks.xlsx'
-        path = 'company/'
-        gpw_stocks = pd.read_excel(excel_gpw_stocks, index_col=False) 
+        # To Be Done
+        pass
+        # excel_gpw_stocks = 'gpwStocks.xlsx'
+        # path = 'company/'
+        # gpw_stocks = pd.read_excel(excel_gpw_stocks, index_col=False) 
 
-        for i in range(len(gpw_stocks)):
-            print("###### {} #######".format(i))
-            company_name = gpw_stocks.iloc[i,0]  # 11bit-studio ISIN
-            self.instrument = company_name
-            self.update_csv(path + str(gpw_stocks.iloc[i,0] + '.csv'))
+        # for i in range(len(gpw_stocks)):
+        #     print("###### {} #######".format(i))
+        #     company_name = gpw_stocks.iloc[i,0]  # 11bit-studio ISIN
+        #     self.instrument = company_name
+        #     self.update_csv(path + str(gpw_stocks.iloc[i,0] + '.csv'))
         
-        return True
+        # return True
 
-    def collect_data(self, instrument, instrument_type):
+    def __collect_data(self, instrument, instrument_type):
         start = dt.strptime(self.date_start, '%Y-%m-%d')
         stop = dt.strptime(self.date_end, '%Y-%m-%d')
         delta = timedelta(days=1) 
@@ -153,20 +166,25 @@ class GpwDataLoader:
         return df
 
     def read_gpw_stock(self, instrument):
-        df = self.collect_data(instrument, self.INSTRUMENT_TYPE_STOCK)
-        self.save_csv(self.instrument + '.csv', df)
+        # To Be Done
+        pass
+        # df = self.__collect_data(instrument, self.INSTRUMENT_TYPE_STOCK)
+        # self.save_csv(self.instrument + '.csv', df)
         
-    # Not used untill gpwStocks.xlsx will be resurrected to live :D 
-    def read_gpw_stocks(self, date_start, date_end, i_start, i_stop):
-        excel_gpw_stocks = 'gpwStocks.xlsx'
-        gpw_stocks = pd.read_excel(excel_gpw_stocks, index_col=False)
 
-        for i  in range(i_start,i_stop): #(len(gpw_stocks))
-            print('Now: {}'.format(str(gpw_stocks.iloc[i,0])))
-            company_name = gpw_stocks.iloc[i,0]  # 11bit-studio ISIN
-            self.instrument = company_name
-            df = self.collect_data(date_start, date_end, 'https://www.gpw.pl/archiwum-notowan-full?type=10&instrument=')
-            self.save_csv(str(gpw_stocks.iloc[i,0]) + '.csv', df, 'stock')
+    def read_gpw_stocks(self, date_start, date_end, i_start, i_stop):
+        # To Be Done
+        pass
+        # excel_gpw_stocks = 'gpwStocks.xlsx'
+        # gpw_stocks = pd.read_excel(excel_gpw_stocks, index_col=False)
+
+        # for i  in range(i_start,i_stop): #(len(gpw_stocks))
+        #     print('Now: {}'.format(str(gpw_stocks.iloc[i,0])))
+        #     company_name = gpw_stocks.iloc[i,0]  # 11bit-studio ISIN
+        #     self.instrument = company_name
+        #     df = self.__collect_data(date_start, date_end, 'https://www.gpw.pl/archiwum-notowan-full?type=10&instrument=')
+        #     self.save_csv(str(gpw_stocks.iloc[i,0]) + '.csv', df, 'stock')
+
 
     def flipCsvFile(self, path):
         df = pd.read_csv(path)

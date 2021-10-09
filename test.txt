@@ -1,4 +1,0 @@
- 0    1     2     3       4     5    6    7       8          9       10            11
-Name,data,ISIN,currency,openV,maxV,minV,closeV,valueChagPer,vol,amountOfDeals,valueOfDeals
-data,Otwarcie,closeV,Maks.,Min.,Obrot (mln. zł),Zmiana (%)
-  1     4        7    5     6     11                8
