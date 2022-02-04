@@ -5,5 +5,8 @@ class WrongStartDate(Exception):
     too early i.e before 1970 or after current date"""
 
 class WrongEndDate(Exception):
-    """Exception raised when End data is in bad format,
+    """Exception raised when end data is in bad format,
     before start date, too early i.e before 1970 or after current date"""
+
+class StockNameNotExist(Exception):
+    """Exception raised when stock name is wrong or legacy"""

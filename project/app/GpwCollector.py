@@ -7,3 +7,6 @@ class GpwCollector(Collector):
 
     def collect(self, start, stop):
         pass
+
+    def set_stock(self, stock_name):
+        pass
