@@ -190,3 +190,4 @@ class GpwDataLoader:
         df = pd.read_csv(path)
         df = df[::-1]
         df.to_csv(path, header=True, index = False)
+        

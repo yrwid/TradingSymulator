@@ -4,7 +4,7 @@ import pytest
 from app import GpwCollectorExceptions as gpwe
 
 
-# time logged: 3h, 1,5h, 1h,
+# time logged: 3h, 1,5h, 1h, 1h,
 
 # Comment 1: With easy interface there is easier to write tests,
 # more arguments in interface makes tests harder to write,
