@@ -4,7 +4,7 @@ import pytest
 from app import GpwCollectorExceptions as gpwe
 
 
-# time logged: 3h, 1,5h, 1h, 1h,
+# time logged: 3h, 1,5h, 1h, || 1h, 1h
 
 # Comment 1: With easy interface there is easier to write tests,
 # more arguments in interface makes tests harder to write,
@@ -23,7 +23,6 @@ def set_up():
 
 def test_unknown_stock_name():
     gpw_collector = GpwCollector()
-    gpw_collector.set_stock("randomText123456xyz")
     start = '2021-08-27'
     end = '2021-09-08'
     with pytest.raises(gpwe.StockNameNotExist):
@@ -36,6 +35,7 @@ def test_compare_collected_data_to_golden_file(set_up):
     start = '2021-08-27'
     end = '2021-09-08'
     collected_data = gpw_collector.collect(start, end)
+    print(gold_file_data)
     assert gold_file_data.equals(collected_data)
 
 
