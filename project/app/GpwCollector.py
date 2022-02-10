@@ -57,7 +57,6 @@ class GpwCollector(Collector):
         start = dt.strptime(date_start, '%Y-%m-%d')
         stop = dt.strptime(date_end, '%Y-%m-%d')
         delta = timedelta(days=1)
-        # df = pd.DataFrame([])
         retrieved_data_temporary = list()
 
         while start <= stop:
@@ -72,10 +71,6 @@ class GpwCollector(Collector):
             'maxV', 'minV', 'closeV', 'valueChagPer',
             'vol', 'amountOfDeals', 'valueOfDeals'])
 
-        col = ['openV', 'maxV', 'minV', 'closeV', 'valueChagPer',
-               'vol', 'amountOfDeals', 'valueOfDeals']
-        print(df['valueOfDeals'])
-        df[col] = df[col].astype(float, errors='ignore')
         return self.__adjust_data(df)
 
     def __adjust_data(self, df):
@@ -102,11 +97,11 @@ class GpwCollector(Collector):
                                 }, inplace=False)
         df = df[["Date", "Open", "Close", "Max", "Min", "Volume(mln. PLN)", "Change(%)"]]
 
-        for i in range(len(df)):
-            for j in range(1, 5):
-                df.iloc[i, j] = df.iloc[i, j][0:6]
-            df.iloc[i, 5] = float(df.iloc[i, 5][0:2] + '.' + df.iloc[i, 5][2:4])
+        col = ["Open", "Close", "Max", "Min", "Volume(mln. PLN)", "Change(%)"]
+
+        df[col] = df[col].astype(float)
+        df['Volume(mln. PLN)'] = round(df['Volume(mln. PLN)']/1000, 2)
 
         df = df[::-1]
-        print(df)
+        df.reset_index(drop=True, inplace=True)
         return df

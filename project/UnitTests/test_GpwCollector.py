@@ -35,6 +35,7 @@ def test_compare_collected_data_to_golden_file(set_up):
     start = '2021-08-27'
     end = '2021-09-08'
     collected_data = gpw_collector.collect(start, end)
+    print(collected_data)
     print(gold_file_data)
     assert gold_file_data.equals(collected_data)
 
