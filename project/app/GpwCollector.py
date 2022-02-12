@@ -23,35 +23,6 @@ class GpwCollector(Collector):
             raise StockNameNotExist("Uninitialized stock name, run set_stock() method first")
         return self.__collect_data_from_period(start, stop)
 
-    def __collect_one_record_from(self, date):
-        try:
-            resp = req.get(
-                self.instrument_type
-                + self.instrument
-                + '&date=' + date
-            )
-
-            soup = bs4.BeautifulSoup(resp.text, "xml")
-            table_footable = soup.find_all(
-                'table',
-                {'class': 'table footable'})
-
-            tr = table_footable[0].find_all('tr')
-            table = tr[1].text.replace(",", ".").replace(" ", "")
-            table_strings = list(map(lambda x: x.strip(), table.split("\n")))
-            arch_stats = [string for string in table_strings if string]
-
-        except IndexError as not_opened_stock_market:
-            print("Exeption occured")
-            arch_stats = [
-                self.instrument, date, 'no data', 'no data', 'no data',
-                'no data', 'no data', 'no data', 'no data', 'no data',
-                'no data', 'no data']
-
-        if len(arch_stats) == 11:
-            arch_stats.insert(3, 'index')
-
-        return arch_stats
 
     def __collect_data_from_period(self, date_start, date_end):
         start = dt.strptime(date_start, '%Y-%m-%d')
@@ -67,9 +38,9 @@ class GpwCollector(Collector):
             print("Done.")
 
         df = pd.DataFrame(retrieved_data_temporary, columns=[
-            'Name', 'data', 'ISIN', 'currency', 'openV',
-            'maxV', 'minV', 'closeV', 'valueChagPer',
-            'vol', 'amountOfDeals', 'valueOfDeals'])
+            'Name', 'Date', 'ISIN', 'Currency', 'Open',
+            'Max', 'Min', 'Close', 'Change(%)',
+            'VolumeInQuantity', 'AmountOfDeals', 'Volume(mln. PLN)'])
 
         return self.__adjust_data(df)
 
@@ -84,17 +55,7 @@ class GpwCollector(Collector):
                 lines_to_drop.append(i)
 
         df = df.drop(labels=lines_to_drop, axis=0)
-        df = df.drop(['Name', 'ISIN', 'currency', 'vol', 'amountOfDeals'], axis=1)
-
-        # Date, Open, Close, Max, Min, Volume(mln.PLN), Change( %)
-        df = df.rename(columns={'data': 'Date',
-                                'openV': 'Open',
-                                'maxV': 'Max',
-                                'minV': 'Min',
-                                'closeV': 'Close',
-                                'valueChagPer': 'Change(%)',
-                                'valueOfDeals': 'Volume(mln. PLN)'
-                                }, inplace=False)
+        df = df.drop(['Name', 'ISIN', 'Currency', 'VolumeInQuantity', 'AmountOfDeals'], axis=1)
         df = df[["Date", "Open", "Close", "Max", "Min", "Volume(mln. PLN)", "Change(%)"]]
 
         col = ["Open", "Close", "Max", "Min", "Volume(mln. PLN)", "Change(%)"]
@@ -105,3 +66,31 @@ class GpwCollector(Collector):
         df = df[::-1]
         df.reset_index(drop=True, inplace=True)
         return df
+
+    def __collect_one_record_from(self, date):
+        try:
+            page = self.__send_page_request(date)
+            historical_stock_data = self.__scrap_data_from(page)
+        except IndexError:
+            historical_stock_data = self.__mark_date_as_market_closed(date)
+
+        return historical_stock_data
+
+    def __send_page_request(self, date):
+        return req.get(self.instrument_type
+                       + self.instrument
+                       + '&date=' + date)
+
+    def __scrap_data_from(self, page):
+        soup = bs4.BeautifulSoup(page.text, "xml")
+        table_footable = soup.find_all('table', {'class': 'table footable'})
+        tr_tag = table_footable[0].find_all('tr')
+        table = tr_tag[1].text.replace(",", ".").replace(" ", "")
+        table_strings = list(map(lambda x: x.strip(), table.split("\n")))
+        stock_data = [string for string in table_strings if string]
+        return stock_data
+
+    def __mark_date_as_market_closed(self, date):
+        return [self.instrument, date, 'no data', 'no data', 'no data',
+                'no data', 'no data', 'no data', 'no data', 'no data',
+                'no data', 'no data']
