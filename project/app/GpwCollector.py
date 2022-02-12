@@ -27,45 +27,21 @@ class GpwCollector(Collector):
     def __collect_data_from_period(self, date_start, date_end):
         start = dt.strptime(date_start, '%Y-%m-%d')
         stop = dt.strptime(date_end, '%Y-%m-%d')
-        delta = timedelta(days=1)
-        retrieved_data_temporary = list()
 
-        while start <= stop:
-            print("Downloading {} data... ".format(start.date()))
-            stats = self.__collect_one_record_from(start.strftime('%d-%m-%Y'))
-            retrieved_data_temporary.append(stats)
-            start = start + delta  # increase day one by one
-            print("Done.")
+        period_data = self.__iterate_and_collect_throughth(start, stop)
+        df = self.__create_data_frame_from(period_data)
+        df = self.__adjust_data(df)
 
-        df = pd.DataFrame(retrieved_data_temporary, columns=[
-            'Name', 'Date', 'ISIN', 'Currency', 'Open',
-            'Max', 'Min', 'Close', 'Change(%)',
-            'VolumeInQuantity', 'AmountOfDeals', 'Volume(mln. PLN)'])
-
-        return self.__adjust_data(df)
-
-    def __adjust_data(self, df):
-        for i in range(len(df)):
-            data_time_object = dt.strptime(df.iloc[i, 1], '%d-%m-%Y')
-            df.iloc[i, 1] = data_time_object.strftime('%Y-%m-%d')
-
-        lines_to_drop = list()
-        for i in range(len(df)):
-            if df.iloc[i, 2] is 'no data':
-                lines_to_drop.append(i)
-
-        df = df.drop(labels=lines_to_drop, axis=0)
-        df = df.drop(['Name', 'ISIN', 'Currency', 'VolumeInQuantity', 'AmountOfDeals'], axis=1)
-        df = df[["Date", "Open", "Close", "Max", "Min", "Volume(mln. PLN)", "Change(%)"]]
-
-        col = ["Open", "Close", "Max", "Min", "Volume(mln. PLN)", "Change(%)"]
-
-        df[col] = df[col].astype(float)
-        df['Volume(mln. PLN)'] = round(df['Volume(mln. PLN)']/1000, 2)
-
-        df = df[::-1]
-        df.reset_index(drop=True, inplace=True)
         return df
+
+    def __iterate_and_collect_throughth(self, start, stop):
+        data_from_period = list()
+        while start <= stop:
+            one_day_data = self.__collect_one_record_from(start.strftime('%d-%m-%Y'))
+            data_from_period.append(one_day_data)
+            start += timedelta(days=1)  # increase day one by one
+
+        return data_from_period
 
     def __collect_one_record_from(self, date):
         try:
@@ -94,3 +70,32 @@ class GpwCollector(Collector):
         return [self.instrument, date, 'no data', 'no data', 'no data',
                 'no data', 'no data', 'no data', 'no data', 'no data',
                 'no data', 'no data']
+
+    def __create_data_frame_from(self, data):
+        return pd.DataFrame(data,
+                        columns=['Name', 'Date', 'ISIN', 'Currency', 'Open',
+                                  'Max', 'Min', 'Close', 'Change(%)',
+                                  'VolumeInQuantity', 'AmountOfDeals', 'Volume(mln. PLN)'])
+
+    def __adjust_data(self, df):
+        for i in range(len(df)):
+            data_time_object = dt.strptime(df.iloc[i, 1], '%d-%m-%Y')
+            df.iloc[i, 1] = data_time_object.strftime('%Y-%m-%d')
+
+        lines_to_drop = list()
+        for i in range(len(df)):
+            if df.iloc[i, 2] is 'no data':
+                lines_to_drop.append(i)
+
+        df = df.drop(labels=lines_to_drop, axis=0)
+        df = df.drop(['Name', 'ISIN', 'Currency', 'VolumeInQuantity', 'AmountOfDeals'], axis=1)
+        df = df[["Date", "Open", "Close", "Max", "Min", "Volume(mln. PLN)", "Change(%)"]]
+
+        col = ["Open", "Close", "Max", "Min", "Volume(mln. PLN)", "Change(%)"]
+
+        df[col] = df[col].astype(float)
+        df['Volume(mln. PLN)'] = round(df['Volume(mln. PLN)']/1000, 2)
+
+        df = df[::-1]
+        df.reset_index(drop=True, inplace=True)
+        return df
