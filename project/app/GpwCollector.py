@@ -21,8 +21,8 @@ class GpwCollector(Collector):
     def collect(self, start, stop):
         if self.instrument is None:
             raise StockNameNotExist("Uninitialized stock name, run set_stock() method first")
-        return self.__collect_data_from_period(start, stop)
 
+        return self.__collect_data_from_period(start, stop)
 
     def __collect_data_from_period(self, date_start, date_end):
         start = dt.strptime(date_start, '%Y-%m-%d')
@@ -64,6 +64,7 @@ class GpwCollector(Collector):
         table = tr_tag[1].text.replace(",", ".").replace(" ", "")
         table_strings = list(map(lambda x: x.strip(), table.split("\n")))
         stock_data = [string for string in table_strings if string]
+
         return stock_data
 
     def __mark_date_as_market_closed(self, date):
@@ -78,24 +79,44 @@ class GpwCollector(Collector):
                                   'VolumeInQuantity', 'AmountOfDeals', 'Volume(mln. PLN)'])
 
     def __adjust_data(self, df):
+        df_with_flipped_date = self.__flip_date_in_data_frame(df)
+        df_without_market_closed_rows = self.__drop_market_closed_rows(df_with_flipped_date)
+        df_with_need_only_data = self.__drop_unused_data(df_without_market_closed_rows)
+        df_sorted = self.__sort_columns_to_match(df_with_need_only_data)
+        df_with_numeric_columns = self.__convert_to_float(["Open", "Close", "Max",
+                                                           "Min", "Volume(mln. PLN)", "Change(%)"],
+                                                            df_sorted)
+        df_with_numeric_columns['Volume(mln. PLN)'] = round(df_with_numeric_columns['Volume(mln. PLN)']/1000, 2)
+        reversed_df = self.__reverse_data_frame_upside_down(df_with_numeric_columns)
+        final_df_outcome = reversed_df.reset_index(drop=True)
+
+        return final_df_outcome
+
+    def __flip_date_in_data_frame(self, df):
         for i in range(len(df)):
             data_time_object = dt.strptime(df.iloc[i, 1], '%d-%m-%Y')
             df.iloc[i, 1] = data_time_object.strftime('%Y-%m-%d')
 
+        return df
+
+    def __drop_market_closed_rows(self, df):
         lines_to_drop = list()
         for i in range(len(df)):
             if df.iloc[i, 2] is 'no data':
                 lines_to_drop.append(i)
-
         df = df.drop(labels=lines_to_drop, axis=0)
-        df = df.drop(['Name', 'ISIN', 'Currency', 'VolumeInQuantity', 'AmountOfDeals'], axis=1)
-        df = df[["Date", "Open", "Close", "Max", "Min", "Volume(mln. PLN)", "Change(%)"]]
 
-        col = ["Open", "Close", "Max", "Min", "Volume(mln. PLN)", "Change(%)"]
-
-        df[col] = df[col].astype(float)
-        df['Volume(mln. PLN)'] = round(df['Volume(mln. PLN)']/1000, 2)
-
-        df = df[::-1]
-        df.reset_index(drop=True, inplace=True)
         return df
+
+    def __drop_unused_data(self, df):
+        return df.drop(['Name', 'ISIN', 'Currency', 'VolumeInQuantity', 'AmountOfDeals'], axis=1)
+
+    def __sort_columns_to_match(self, df):
+        return df[["Date", "Open", "Close", "Max", "Min", "Volume(mln. PLN)", "Change(%)"]]
+
+    def __convert_to_float(self, list_of_columns, df):
+        df[list_of_columns] = df[list_of_columns].astype(float)
+        return df
+
+    def __reverse_data_frame_upside_down(self, df):
+        return df[::-1]
