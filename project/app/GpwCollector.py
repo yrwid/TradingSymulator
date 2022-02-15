@@ -22,11 +22,22 @@ class GpwCollector(Collector):
         if self.instrument is None:
             raise StockNameNotExist("Uninitialized stock name, run set_stock() method first")
 
+        try:
+            start = dt.strptime(start, '%Y-%m-%d')
+            stop = dt.strptime(stop, '%Y-%m-%d')
+        except ValueError:
+            raise WrongStartDate("Wrong start ot stop date")
+
+        current_datetime = dt.datetime.today()
+        bottom_acceptable_date = current_datetime - dt.timedelta(days=5000)
+
+        # if (start > bottom_acceptable_date)
+        # print(bottom_acceptable_date)
+
         return self.__collect_data_from_period(start, stop)
 
     def __collect_data_from_period(self, date_start, date_end):
-        start = dt.strptime(date_start, '%Y-%m-%d')
-        stop = dt.strptime(date_end, '%Y-%m-%d')
+
 
         period_data = self.__iterate_and_collect_throughth(start, stop)
         df = self.__create_data_frame_from(period_data)
@@ -75,8 +86,8 @@ class GpwCollector(Collector):
     def __create_data_frame_from(self, data):
         return pd.DataFrame(data,
                         columns=['Name', 'Date', 'ISIN', 'Currency', 'Open',
-                                  'Max', 'Min', 'Close', 'Change(%)',
-                                  'VolumeInQuantity', 'AmountOfDeals', 'Volume(mln. PLN)'])
+                                 'Max', 'Min', 'Close', 'Change(%)',
+                                 'VolumeInQuantity', 'AmountOfDeals', 'Volume(mln. PLN)'])
 
     def __adjust_data(self, df):
         df_with_flipped_date = self.__flip_date_in_data_frame(df)
@@ -85,7 +96,7 @@ class GpwCollector(Collector):
         df_sorted = self.__sort_columns_to_match(df_with_need_only_data)
         df_with_numeric_columns = self.__convert_to_float(["Open", "Close", "Max",
                                                            "Min", "Volume(mln. PLN)", "Change(%)"],
-                                                            df_sorted)
+                                                           df_sorted)
         df_with_numeric_columns['Volume(mln. PLN)'] = round(df_with_numeric_columns['Volume(mln. PLN)']/1000, 2)
         reversed_df = self.__reverse_data_frame_upside_down(df_with_numeric_columns)
         final_df_outcome = reversed_df.reset_index(drop=True)

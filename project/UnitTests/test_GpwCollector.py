@@ -35,8 +35,6 @@ def test_compare_collected_data_to_golden_file(set_up):
     start = '2021-08-27'
     end = '2021-09-08'
     collected_data = gpw_collector.collect(start, end)
-    print(collected_data)
-    print(gold_file_data)
     assert gold_file_data.equals(collected_data)
 
 
@@ -46,7 +44,8 @@ def test_same_start_end_dates(set_up):
     start = '2021-09-08'
     end = '2021-09-08'
     collected_data = gpw_collector.collect(start, end)
-    assert collected_data.equals(gold_file_data.iloc[0])
+    golden_file_day_one = gold_file_data.iloc[[0]]
+    assert collected_data.equals(golden_file_day_one)
 
 
 def test_random_start_date(set_up):
