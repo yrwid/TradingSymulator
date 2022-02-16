@@ -26,19 +26,21 @@ class GpwCollector(Collector):
             start = dt.strptime(start, '%Y-%m-%d')
             stop = dt.strptime(stop, '%Y-%m-%d')
         except ValueError:
-            raise WrongStartDate("Wrong start ot stop date")
+            raise WrongInputDate("Wrong start ot stop date")
 
-        current_datetime = dt.datetime.today()
-        bottom_acceptable_date = current_datetime - dt.timedelta(days=5000)
+        current_datetime = dt.today()
+        bottom_acceptable_date = current_datetime - timedelta(days=5000)
+        start_date_in_boundaries = (start > bottom_acceptable_date) and (current_datetime >= start)
+        stop_date_in_boundaries = (stop > bottom_acceptable_date) and (current_datetime >= stop)
+        start_before_stop_date = (start >= stop)
 
-        # if (start > bottom_acceptable_date)
-        # print(bottom_acceptable_date)
+        if not (start_date_in_boundaries and stop_date_in_boundaries and start_before_stop_date):
+            raise WrongInputDate("Wrong start ot stop date")
+
 
         return self.__collect_data_from_period(start, stop)
 
-    def __collect_data_from_period(self, date_start, date_end):
-
-
+    def __collect_data_from_period(self, start, stop):
         period_data = self.__iterate_and_collect_throughth(start, stop)
         df = self.__create_data_frame_from(period_data)
         df = self.__adjust_data(df)
