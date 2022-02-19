@@ -17,7 +17,7 @@ from app import GpwCollectorExceptions as gpwe
 @pytest.fixture()
 def set_up():
     gpw_collector = GpwCollector()
-    gpw_collector.set_stock("CDPROJEKT")
+    gpw_collector.set_instrument("CDPROJEKT")
     return gpw_collector
 
 

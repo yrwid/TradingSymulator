@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 
 class Collector(ABC):
     @abstractmethod
-    def set_stock(self, stock_name):
+    def set_instrument(self, stock_name):
         pass
 
     @abstractmethod

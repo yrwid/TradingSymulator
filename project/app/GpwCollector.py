@@ -14,31 +14,39 @@ class GpwCollector(Collector):
         self.instrument = None
         self.instrument_type = None
 
-    def set_stock(self, stock_name):
+    def set_instrument(self, stock_name):
         self.instrument = stock_name
         self.instrument_type = self.INSTRUMENT_TYPES['stock']
 
     def collect(self, start, stop):
+        self.__rise_exception_if_instrument_is_empty()
+        [start_dt, stop_dt] = self.__convert_to_datetime_pbjects(start, stop)
+        self.__check_whether_dates_are_in_boundaries(start_dt, stop_dt)
+
+        return self.__collect_data_from_period(start_dt, stop_dt)
+
+    def __rise_exception_if_instrument_is_empty(self):
         if self.instrument is None:
             raise StockNameNotExist("Uninitialized stock name, run set_stock() method first")
 
+    def __convert_to_datetime_pbjects(self, start, stop):
         try:
-            start = dt.strptime(start, '%Y-%m-%d')
-            stop = dt.strptime(stop, '%Y-%m-%d')
+            start_dt = dt.strptime(start, '%Y-%m-%d')
+            stop_dt = dt.strptime(stop, '%Y-%m-%d')
         except ValueError:
-            raise WrongInputDate("Wrong start ot stop date")
+            raise WrongInputDate("Wrong start or stop date")
 
+        return [start_dt, stop_dt]
+
+    def __check_whether_dates_are_in_boundaries(self, start, stop):
         current_datetime = dt.today()
         bottom_acceptable_date = current_datetime - timedelta(days=5000)
         start_date_in_boundaries = (start > bottom_acceptable_date) and (current_datetime >= start)
         stop_date_in_boundaries = (stop > bottom_acceptable_date) and (current_datetime >= stop)
-        start_before_stop_date = (start >= stop)
+        start_before_stop_date = (start <= stop)
 
         if not (start_date_in_boundaries and stop_date_in_boundaries and start_before_stop_date):
-            raise WrongInputDate("Wrong start ot stop date")
-
-
-        return self.__collect_data_from_period(start, stop)
+            raise WrongInputDate("Wrong start or stop date")
 
     def __collect_data_from_period(self, start, stop):
         period_data = self.__iterate_and_collect_throughth(start, stop)
@@ -115,7 +123,7 @@ class GpwCollector(Collector):
     def __drop_market_closed_rows(self, df):
         lines_to_drop = list()
         for i in range(len(df)):
-            if df.iloc[i, 2] is 'no data':
+            if df.iloc[i, 2] == 'no data':
                 lines_to_drop.append(i)
         df = df.drop(labels=lines_to_drop, axis=0)
 
