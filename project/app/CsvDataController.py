@@ -1,18 +1,14 @@
 from app.DataController import *
 
 class CsvDataController(DataController):
-    @abstractmethod
-    def __init__(self, stock_name):
-        self.stock_name = stock_name
+    def __init__(self, path):
+        self.path = path
 
-    @abstractmethod
-    def erase(self, data_frame):
+    def erase(self):
         pass
 
-    @abstractmethod
     def append(self, data_frame):
         pass
 
-    @abstractmethod
     def read(self):
         pass
