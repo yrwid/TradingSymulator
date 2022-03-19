@@ -1,14 +1,26 @@
 from app.DataController import *
+from app.CsvDataControllerExceptions import *
+import pandas as pd
+import os.path
+
 
 class CsvDataController(DataController):
     def __init__(self, path):
-        self.path = path
+        if os.path.isfile(path):
+            self.path = path
+        else:
+            raise WrongPathToFile
 
     def erase(self):
-        pass
+        # Opening and closing with only w flag will erase file.
+        open(self.path, 'w').close()
 
     def append(self, data_frame):
-        pass
+        data_frame.to_csv(self.path, mode='a', index=False, header=False)
 
     def read(self):
-        pass
+        try:
+            df = pd.read_csv(self.path)
+        except:
+            raise UnabledToReadFromFileToDataFrame
+        return df
