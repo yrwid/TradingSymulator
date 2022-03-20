@@ -1,8 +1,10 @@
 from app.CsvDataController import CsvDataController
+from app import CsvDataControllerExceptions as cdce
 import pytest
 import os
 import tempfile
 import pandas as pd
+
 
 def test_erase_file():
     fd, path = tempfile.mkstemp()
@@ -27,13 +29,13 @@ def test_append_file():
     gold_file_data = pd.read_csv('goldFiles/cdproject.csv')
     try:
         csv_controller = CsvDataController(path)
-        csv_controller.append(gold_file_data.iloc[-1])
+        line_appended = gold_file_data.iloc[[0]]
+        csv_controller.append(line_appended)
         appended_file = pd.read_csv(path)
-        first_line_in_file = appended_file.iloc[0]
-        line_appended = gold_file_data.iloc[-1]
+        last_line_in_file = appended_file.iloc[[-1]]
 
         # Start appending from top, not bottom.
-        assert first_line_in_file == line_appended
+        assert last_line_in_file.reset_index(drop=True).equals(line_appended.reset_index(drop=True))
     finally:
         os.remove(path)
 
@@ -44,5 +46,8 @@ def test_read_file():
     gold_file_data = pd.read_csv('goldFiles/cdproject.csv')
     assert df.equals(gold_file_data)
 
+
 def test_expections():
-    assert False
+    csv_controller = CsvDataController('goldFiles/non_dataframe_file.csv')
+    with pytest.raises(cdce.UnabledToReadFromFileToDataFrame):
+        csv_controller.read()
