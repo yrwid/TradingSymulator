@@ -47,7 +47,7 @@ def test_read_file():
     assert df.equals(gold_file_data)
 
 
-def test_expections():
+def test_exceptions():
     csv_controller = CsvDataController('goldFiles/non_dataframe_file.csv')
     with pytest.raises(cdce.UnabledToReadFromFileToDataFrame):
         csv_controller.read()
