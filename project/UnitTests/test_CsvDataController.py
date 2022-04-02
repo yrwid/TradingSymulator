@@ -36,6 +36,9 @@ def test_append_file():
 
         # Start appending from top, not bottom.
         assert last_line_in_file.reset_index(drop=True).equals(line_appended.reset_index(drop=True))
+    except Exception as e:
+        print(e)
+        assert False
     finally:
         os.remove(path)
 
