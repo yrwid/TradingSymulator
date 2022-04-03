@@ -28,7 +28,7 @@ class DataManager(ABC):
         pass
 
     @abstractmethod
-    def register_data_source(self, path_to_source, source_type):
+    def register_data_source(self, data_source_name, path_to_source, source_type):
         pass
 
     @abstractmethod
@@ -40,5 +40,5 @@ class DataManager(ABC):
         pass
 
     @abstractmethod
-    def get_current_data_source(self):
+    def get_current_data_source_name(self):
         pass

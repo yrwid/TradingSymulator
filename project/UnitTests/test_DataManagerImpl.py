@@ -1,5 +1,6 @@
 from app.DataManagerImpl import DataManagerImpl
 from app import DataManagerImplExceptions as DataManagerExceptions
+from app import CsvDataControllerExceptions as DataControllerExceptions
 from datetime import datetime
 import pytest
 import pandas as pd
@@ -10,8 +11,8 @@ def data_source_with_two_registered_sources():
     source_path_2 = "goldFiles/otherDataSource.csv"
     source_type_csv = "csv"
     data_manager = DataManagerImpl()
-    data_manager.register_data_source(source_path_1, source_type_csv)
-    data_manager.register_data_source(source_path_2, source_type_csv)
+    data_manager.register_data_source("cdproject", source_path_1, source_type_csv)
+    data_manager.register_data_source("otherDataSource", source_path_2, source_type_csv)
     return data_manager
 
 
@@ -20,44 +21,49 @@ def data_source_with_one_registered_sources():
     source_path_1 = "goldFiles/cdproject.csv"
     source_type_csv = "csv"
     data_manager = DataManagerImpl()
-    data_manager.register_data_source(source_path_1, source_type_csv)
+    data_manager.register_data_source("cdproject", source_path_1, source_type_csv)
     return data_manager
 
 
 def test_register_correct_data_source():
-    source_path = "goldFiles/cdproject"
+    source_path = "goldFiles/cdproject.csv"
     source_type = "csv"
     data_manager = DataManagerImpl()
-    assert data_manager.register_data_source(source_path, source_type)
+    try:
+        data_manager.register_data_source("cdproject", source_path, source_type)
+    except Exception as e:
+        print(e)
+        assert False
 
 
 def test_register_incorrect_data_source():
     source_path = "goldFiles/abcdfg"
     source_type = "csv"
     data_manager = DataManagerImpl()
-    assert data_manager.register_data_source(source_path, source_type)
+    with pytest.raises(DataControllerExceptions.WrongPathToFile):
+        data_manager.register_data_source("cdproject", source_path, source_type)
 
 
 def test_list_data_source(data_source_with_two_registered_sources):
     data_manager = data_source_with_two_registered_sources
     data_sources = data_manager.list_data_sources()
-    data_sources_expected = [("cdprojekt", "csv"), ("otherDataSource", "csv")]
+    data_sources_expected = [("cdproject", "csv"), ("otherDataSource", "csv")]
     assert data_sources == data_sources_expected
 
 
 def test_get_current_data_source(data_source_with_two_registered_sources):
     data_manager = data_source_with_two_registered_sources
-    current_data_source = data_manager.get_current_data_source()
-    expected_data_source = ("otherDataSource", "csv")
+    current_data_source = data_manager.get_current_data_source_name()
+    expected_data_source = ("cdproject", "csv")
     assert current_data_source == expected_data_source
 
 
 def test_change_data_source(data_source_with_two_registered_sources):
     data_manager = data_source_with_two_registered_sources
-    data_manager.change_data_source("cdproject")
-    current_data_source = data_manager.get_current_data_source()
-    expected_data_source = ("cdproject", "csv")
-    assert  current_data_source == expected_data_source
+    data_manager.change_data_source("otherDataSource")
+    current_data_source = data_manager.get_current_data_source_name()
+    expected_data_source = ("otherDataSource", "csv")
+    assert current_data_source == expected_data_source
 
 
 def test_read_last_record_date(data_source_with_one_registered_sources):
@@ -87,11 +93,11 @@ def test_get_df(data_source_with_one_registered_sources):
 def test_call_without_registered_data_source():
     data_manager = DataManagerImpl()
 
-    with pytest.raises(DataManagerExceptions.DataSourceNotRegistered):
+    with pytest.raises(DataManagerExceptions.UnknownDataSourceName):
         data_manager.change_data_source("cdproject")
 
     with pytest.raises(DataManagerExceptions.DataSourceNotRegistered):
-        data_manager.get_current_data_source()
+        data_manager.get_current_data_source_name()
 
     with pytest.raises(DataManagerExceptions.DataSourceNotRegistered):
         data_manager.list_data_sources()
@@ -110,3 +116,19 @@ def test_call_without_registered_data_source():
 
     with pytest.raises(DataManagerExceptions.DataSourceNotRegistered):
         data_manager.overwrite_df()
+
+
+def test_unknown_format_type():
+    source_name = "cdproject"
+    source_path = "goldFiles/cdproject.csv"
+    source_type = "lkm"
+    data_manager = DataManagerImpl()
+    with pytest.raises(DataManagerExceptions.UnknownDataTypeFormat):
+        data_manager.register_data_source(source_name, source_path, source_type)
+
+
+def test_unknown_data_source_name(data_source_with_one_registered_sources):
+    unknown_data_source_name = "NotDataSourceName"
+    data_manager = data_source_with_one_registered_sources
+    with pytest.raises(DataManagerExceptions.UnknownDataSourceName):
+        data_manager.change_data_source(unknown_data_source_name)

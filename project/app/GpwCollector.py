@@ -95,9 +95,9 @@ class GpwCollector(Collector):
 
     def __create_data_frame_from(self, data):
         return pd.DataFrame(data,
-                        columns=['Name', 'Date', 'ISIN', 'Currency', 'Open',
-                                 'Max', 'Min', 'Close', 'Change(%)',
-                                 'VolumeInQuantity', 'AmountOfDeals', 'Volume(mln. PLN)'])
+                            columns=['Name', 'Date', 'ISIN', 'Currency', 'Open',
+                                     'Max', 'Min', 'Close', 'Change(%)',
+                                     'VolumeInQuantity', 'AmountOfDeals', 'Volume(mln. PLN)'])
 
     def __adjust_data(self, df):
         df_with_flipped_date = self.__flip_date_in_data_frame(df)
