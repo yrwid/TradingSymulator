@@ -16,18 +16,18 @@ class DataManagerImpl(DataManager):
 
     def get_period_to_refresh(self):
         last_date = self.read_last_record_date()
-        return datetime.now() - datetime(last_date)
+        return (datetime.now() - datetime.strptime(last_date, '%Y-%m-%d')).days
 
     def get_df(self):
-        data_source = self.__get_current_data_source()
+        data_source = self.__get_current_data_source_handle()
         return data_source.read()
 
     def append_df(self, df):
-        data_source = self.__get_current_data_source()
+        data_source = self.__get_current_data_source_handle()
         data_source.append(df)
 
     def overwrite_df(self, df):
-        data_source = self.__get_current_data_source()
+        data_source = self.__get_current_data_source_handle()
         data_source.erase()
         data_source.append(df)
 
@@ -38,7 +38,9 @@ class DataManagerImpl(DataManager):
                                   "handle" : data_source_handle})
 
     def list_data_sources(self):
+        self.__thrown_exception_if_no_data_source_is_available()
         current_data_sources = list()
+
         for data_source in self.data_sources:
             current_data_sources.append(tuple([data_source["name"], data_source["type"]]))
         return current_data_sources
@@ -63,4 +65,13 @@ class DataManagerImpl(DataManager):
         return data_controller
 
     def __get_current_data_source(self):
+        self.__thrown_exception_if_no_data_source_is_available()
         return self.data_sources[self.data_source_indicator]
+
+    def __get_current_data_source_handle(self):
+        self.__thrown_exception_if_no_data_source_is_available()
+        return self.data_sources[self.data_source_indicator]["handle"]
+
+    def __thrown_exception_if_no_data_source_is_available(self):
+        if len(self.data_sources) is 0:
+            raise DataSourceNotRegistered
