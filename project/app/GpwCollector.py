@@ -108,8 +108,7 @@ class GpwCollector(Collector):
                                                            "Min", "Volume(mln. PLN)", "Change(%)"],
                                                            df_sorted)
         df_with_numeric_columns['Volume(mln. PLN)'] = round(df_with_numeric_columns['Volume(mln. PLN)']/1000, 2)
-        reversed_df = self.__reverse_data_frame_upside_down(df_with_numeric_columns)
-        final_df_outcome = reversed_df.reset_index(drop=True)
+        final_df_outcome = df_with_numeric_columns.reset_index(drop=True)
 
         return final_df_outcome
 

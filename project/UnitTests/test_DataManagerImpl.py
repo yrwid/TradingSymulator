@@ -66,18 +66,16 @@ def test_change_data_source(data_source_with_two_registered_sources):
     assert current_data_source == expected_data_source
 
 
-@pytest.mark.skip(reason="The implementaion of GpwCollector class has to be changed")
 def test_read_last_record_date(data_source_with_one_registered_sources):
     data_manager = data_source_with_one_registered_sources
     data_manager_date = data_manager.read_last_record_date()
-    expected_date = datetime(2021, 9, 7).strftime('%Y-%m-%d')
+    expected_date = datetime(2021, 9, 8).strftime('%Y-%m-%d')
     assert expected_date == data_manager_date
 
 
-@pytest.mark.skip(reason="The implementaion of GpwCollector class has to be changed")
 def test_get_period_to_refresh(data_source_with_one_registered_sources):
     data_manager = data_source_with_one_registered_sources
-    last_data_refresh_date = datetime(2021, 9, 7)
+    last_data_refresh_date = datetime(2021, 9, 8)
     now = datetime.today()
     delta = now - last_data_refresh_date
 

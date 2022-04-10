@@ -8,7 +8,7 @@ import pandas as pd
 
 def test_erase_file():
     fd, path = tempfile.mkstemp()
-    with os.fdopen(fd, 'w') as tmp, open('goldFiles/cdproject.csv', 'r') as goldenFile:
+    with os.fdopen(fd, 'w') as tmp, open('goldFiles/cdproject_reversed.csv', 'r') as goldenFile:
         for line in goldenFile:
             tmp.write(line)
 
@@ -22,11 +22,11 @@ def test_erase_file():
 
 def test_append_file():
     fd, path = tempfile.mkstemp()
-    with os.fdopen(fd, 'w') as tmp, open('goldFiles/cdproject.csv', 'r') as goldenFile:
+    with os.fdopen(fd, 'w') as tmp, open('goldFiles/cdproject_reversed.csv', 'r') as goldenFile:
         for line in goldenFile:
             tmp.write(line)
 
-    gold_file_data = pd.read_csv('goldFiles/cdproject.csv')
+    gold_file_data = pd.read_csv('goldFiles/cdproject_reversed.csv')
     try:
         csv_controller = CsvDataController(path)
         line_appended = gold_file_data.iloc[[0]]
@@ -44,9 +44,9 @@ def test_append_file():
 
 
 def test_read_file():
-    csv_controller = CsvDataController('goldFiles/cdproject.csv')
+    csv_controller = CsvDataController('goldFiles/cdproject_reversed.csv')
     df = csv_controller.read()
-    gold_file_data = pd.read_csv('goldFiles/cdproject.csv')
+    gold_file_data = pd.read_csv('goldFiles/cdproject_reversed.csv')
     assert df.equals(gold_file_data)
 
 

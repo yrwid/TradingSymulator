@@ -44,7 +44,7 @@ def test_same_start_end_dates(set_up):
     start = '2021-09-08'
     end = '2021-09-08'
     collected_data = gpw_collector.collect(start, end)
-    golden_file_day_one = gold_file_data.iloc[[0]]
+    golden_file_day_one = gold_file_data.iloc[[-1]].reset_index(drop=True)
     assert collected_data.equals(golden_file_day_one)
 
 
