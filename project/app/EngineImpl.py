@@ -4,7 +4,7 @@ class EngineImpl(Engine):
     def __init__(self):
         pass
 
-    def set_strategy(self, stock_name):
+    def set_strategy(self, strategy):
         pass
 
     def run(self, start, stop):
