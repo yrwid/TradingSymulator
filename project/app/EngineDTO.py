@@ -1,8 +1,18 @@
 from typing import NamedTuple
 
-# TODO: fill Dto
-
 
 class EngineDTO(NamedTuple):
-    date: str
-    sma: float
+    """ emaX - exponential moving average with window based on X days """
+
+    ema5: float
+    ema8: float
+    ema10: float
+    ema12: float
+    ema15: float
+    ema30: float
+    ema35: float
+    ema40: float
+    ema45: float
+    ema50: float
+    ema60: float
+
