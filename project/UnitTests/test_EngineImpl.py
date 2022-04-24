@@ -11,10 +11,13 @@ class TestStrategy(Strategy):
         self.buy_signal = list()
         pass
 
-    def calculate(self, date: datetime, dto: EngineDTO):
+# date should be within DTO
+# calculate returne only signal bool true/false
+    def calculate(self, date: datetime, dto: EngineDTO) -> bool:
         # Buy at first day of every month
         if date.day == 1:
-            self.buy_signal.append(date)
+            return True
+        return False
 
         # TODO: Create signals base on data.
 
