@@ -3,10 +3,10 @@ from datetime import datetime
 from app.EngineDTO import EngineDTO
 
 class Strategy(ABC):
-    def __init__(self):
+    def __init__(self, stocks_bought_alredy: bool):
         self.buy_signals = list()
         self.sell_signals = list()
-        self.isBoughtAlready = False
+        self.isBoughtAlready = stocks_bought_alredy
         self.date = ""
 
     @abstractmethod

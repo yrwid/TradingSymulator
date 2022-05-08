@@ -19,27 +19,49 @@ class TestStrategyBasedOnDays(Strategy):
             self._sell_if_possible()
 
 
-class TestStrategyBasedOnData(Strategy):
+class TestStrategyBasedOnEmaData(Strategy):
     def calculate(self, date: datetime, dto: EngineDTO):
         self.date = date
-        cmin = min(dto.ema5, dto.ema8, dto.ema10, dto.ema12, dto.ema15)
-        cmax = max(dto.ema30, dto.ema35, dto.ema40, dto.ema45, dto.ema50, dto.ema60)
 
-        if cmin > cmax:
-            self._buy_if_possible()
-        elif cmin < cmax:
+        if dto.ema15 > dto.ema5:
             self._sell_if_possible()
+        else:
+            self._buy_if_possible()
+
+
+class TestStrategyBasedOnPriceData(Strategy):
+    def calculate(self, date: datetime, dto: EngineDTO):
+        self.date = date
+
+        if dto.ema15 > dto.ema5:
+            self._sell_if_possible()
+        else:
+            self._buy_if_possible()
+
 
 @pytest.fixture()
 def engine_with_data():
     data_manager = DataManagerImpl()
-    data_manager.register_data_source("cdproject", "goldFiles/cdproject.csv", "csv")
-    test_strategy = TestStrategyBasedOnDays()
+    data_manager.register_data_source("cdproject", "goldFiles/cdprojectEngineTestMalformedData.csv", "csv")
     eng = EngineImpl(data_manager.get_df())
-    eng.set_strategy(test_strategy)
+    yield eng
 
-def test_buy_sell_signals():
-    pass
+
+# Based on ema5 and ema15
+# 2021-08-18 - sell
+# 2021-09-03 - buy
+# 2021-09-29 - sell
+
+# based on price
+# 2021-08-18 - Buy
+# 2021-08-24 - sell
+# 2021-09-08 - buy
+# 2021-09-24 - sell
+
+def test_buy_sell_signals(engine_with_data):
+    test_strategy = TestStrategyBasedOnEmaData(stocks_bought_alredy=False)
+    eng = engine_with_data
+    eng.set_strategy(test_strategy)
 
 
 def test_inconsistency_date():
