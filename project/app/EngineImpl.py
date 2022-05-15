@@ -7,5 +7,6 @@ class EngineImpl(Engine):
     def set_strategy(self, strategy):
         pass
 
-    def run(self, start, stop):
+    # todo: set default values to start and end of df
+    def run(self, start=0, stop=0):
         pass
