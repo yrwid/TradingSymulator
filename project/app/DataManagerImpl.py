@@ -73,5 +73,5 @@ class DataManagerImpl(DataManager):
         return self.data_sources[self.data_source_indicator]["handle"]
 
     def __thrown_exception_if_no_data_source_is_available(self):
-        if len(self.data_sources) is 0:
+        if len(self.data_sources) == 0:
             raise DataSourceNotRegistered

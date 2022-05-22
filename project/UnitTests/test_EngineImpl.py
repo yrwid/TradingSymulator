@@ -8,7 +8,7 @@ import pytest
 
 # You can see which side it is better to start creating class
 
-class TestStrategyBasedOnDays(Strategy):
+class StrategyBasedOnDays(Strategy):
     def calculate(self, date: datetime, dto: EngineDTO):
         self.date = date
         # Buy at first day of every month
@@ -20,8 +20,7 @@ class TestStrategyBasedOnDays(Strategy):
             self._sell_if_possible()
 
 
-
-class TestStrategyBasedOnPriceOverTimeData(Strategy):
+class StrategyBasedOnPriceOverTimeData(Strategy):
     class PreviousPriceType:
         price: float
         active: bool
@@ -40,7 +39,7 @@ class TestStrategyBasedOnPriceOverTimeData(Strategy):
             if not (previousPrice.price < dto.currentClosePrice and buy_result and previousPrice.active):
                 buy_result = False;
 
-            if not (previousPrice.price > dto.currentClosePrice and sell_result and previousPrice.active)
+            if not (previousPrice.price > dto.currentClosePrice and sell_result and previousPrice.active):
                 sell_result = False
 
         if buy_result == sell_result:
@@ -58,7 +57,7 @@ class TestStrategyBasedOnPriceOverTimeData(Strategy):
                 self.previousClosePrices[i] = self.previousClosePrices[i+1]
 
 
-class TestStrategyBasedOnEmaData(Strategy):
+class StrategyBasedOnEmaData(Strategy):
     def calculate(self, date: datetime, dto: EngineDTO):
         self.date = date
 
@@ -72,28 +71,13 @@ class TestStrategyBasedOnEmaData(Strategy):
 def engine_with_data():
     data_manager = DataManagerImpl()
     data_manager.register_data_source("cdproject", "goldFiles/cdprojectEngineTestMalformedData.csv", "csv")
-    eng = EngineImpl(data_manager.get_df())
+    df = data_manager.get_df()
+    eng = EngineImpl(df)
     yield eng
 
 
-# Based on ema5 and ema15
-# 2021-08-18 - sell
-# 2021-09-03 - buy
-# 2021-09-29 - sell
-
-# based on price over time
-# 2021-08-18 - Buy
-# 2021-08-24 - sell
-# 2021-09-08 - buy
-# 2021-09-24 - sell
-
-#based on days
-# 2021-08-25 - sell
-# 2021-09-01 - buy
-2021-10-01 - buy
-
-def test_buy_sell_signals(engine_with_data):
-    price_over_time_test_strategy = TestStrategyBasedOnPriceOverTimeData(stocks_bought_already=False)
+def test_buy_sell_signals_basad_on_price(engine_with_data):
+    price_over_time_test_strategy = StrategyBasedOnPriceOverTimeData(stocks_bought_already=False)
     eng = engine_with_data
     eng.set_strategy(price_over_time_test_strategy)
     buy_sell_signals = eng.run()
@@ -104,7 +88,10 @@ def test_buy_sell_signals(engine_with_data):
 
     assert buy_sell_signals == expected_signals
 
-    based_on_days_test_strategy = TestStrategyBasedOnDays(stocks_bought_already=False)
+
+def test_buy_sell_signals_basad_on_days(engine_with_data):
+    based_on_days_test_strategy = StrategyBasedOnDays(stocks_bought_already=False)
+    eng = engine_with_data
     eng.set_strategy(based_on_days_test_strategy)
     buy_sell_signals = eng.run()
     expected_signals = ((datetime(2021, 8, 25), False),
@@ -113,7 +100,10 @@ def test_buy_sell_signals(engine_with_data):
 
     assert buy_sell_signals == expected_signals
 
-    ema_based_test_strategy = TestStrategyBasedOnEmaData(stocks_bought_already=False)
+
+def test_buy_sell_signals_basad_on_emas(engine_with_data):
+    ema_based_test_strategy = StrategyBasedOnEmaData(stocks_bought_already=False)
+    eng = engine_with_data
     eng.set_strategy(ema_based_test_strategy)
     buy_sell_signals = eng.run()
     expected_signals = ((datetime(2021, 8, 18), False),
@@ -122,28 +112,13 @@ def test_buy_sell_signals(engine_with_data):
 
     assert buy_sell_signals == expected_signals
 
+
 def test_inconsistency_date():
     data_manager = DataManagerImpl()
-    data_manager.register_data_source("cdproject", "cdproject_incosistency_data.csv", "csv")
+    data_manager.register_data_source("cdproject", "goldFiles/cdproject_incosistency_data.csv", "csv")
     eng = EngineImpl(data_manager.get_df())
     with pytest.raises(EngineExceptions.InconsistencyData):
         eng.run()
-
-
-def test_wrong_input_date():
-    pass
-
-
-def test_input_indicators():
-    pass
-
-
-def test_correct_buy_signals():
-    pass
-
-
-def test_correct_sell_signas():
-    pass
 
 
 def test_exceptions():

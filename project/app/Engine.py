@@ -13,3 +13,7 @@ class Engine(ABC):
     @abstractmethod
     def run(self, start: datetime, stop: datetime):
         pass
+
+    @abstractmethod
+    def get_current_run_data(self):
+        pass
