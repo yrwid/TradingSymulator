@@ -122,4 +122,5 @@ def test_inconsistency_date():
 
 
 def test_exceptions():
-    pass
+    assert False
+    

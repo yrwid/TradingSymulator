@@ -3,3 +3,6 @@ class InconsistencyData(Exception):
 
 class RedundantEdgeData(Exception):
     """redundant start or stop position"""
+
+class EdgeDateNotExist(Exception):
+    """Edge date doesn't exist in loaded data"""
