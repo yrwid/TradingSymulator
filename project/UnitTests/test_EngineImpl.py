@@ -9,14 +9,14 @@ import pytest
 # You can see which side it is better to start creating class
 
 class StrategyBasedOnDays(Strategy):
-    def calculate(self, date: datetime, dto: EngineDTO):
-        self.date = date
+    def calculate(self, dto: EngineDTO):
+        self.date = dto.date
         # Buy at first day of every month
-        if date.day == 1:
+        if self.date.day == 1:
             self._buy_if_possible()
 
         # Sell on 25th day of month
-        if date.day == 25:
+        if self.date.day == 25:
             self._sell_if_possible()
 
 
@@ -30,14 +30,14 @@ class StrategyBasedOnPriceOverTimeData(Strategy):
         Strategy.__init__(self, stocks_bought_already)
         self.previousClosePrices = [self.PreviousPriceType() for _ in range(4)]
 
-    def calculate(self, date: datetime, dto: EngineDTO):
-        self.date = date
+    def calculate(self, dto: EngineDTO):
+        self.date = dto.date
 
         buy_result = True
         sell_result = True
         for previousPrice in self.previousClosePrices:
             if not (previousPrice.price < dto.currentClosePrice and buy_result and previousPrice.active):
-                buy_result = False;
+                buy_result = False
 
             if not (previousPrice.price > dto.currentClosePrice and sell_result and previousPrice.active):
                 sell_result = False
@@ -58,8 +58,8 @@ class StrategyBasedOnPriceOverTimeData(Strategy):
 
 
 class StrategyBasedOnEmaData(Strategy):
-    def calculate(self, date: datetime, dto: EngineDTO):
-        self.date = date
+    def calculate(self, dto: EngineDTO):
+        self.date = dto.date
 
         if dto.ema15 > dto.ema5:
             self._sell_if_possible()

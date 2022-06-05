@@ -2,15 +2,16 @@ from abc import ABC, abstractmethod
 from datetime import datetime
 from app.EngineDTO import EngineDTO
 
+
 class Strategy(ABC):
     def __init__(self, stocks_bought_already: bool):
         self.buy_signals = list()
         self.sell_signals = list()
         self.isBoughtAlready = stocks_bought_already
-        self.date = ""
+        self.date = None
 
     @abstractmethod
-    def calculate(self, date: datetime, dto: EngineDTO):
+    def calculate(self, dto: EngineDTO):
         pass
 
     def get_indicators(self):

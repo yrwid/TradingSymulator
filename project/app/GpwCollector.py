@@ -19,17 +19,17 @@ class GpwCollector(Collector):
         self.instrument_type = self.INSTRUMENT_TYPES['stock']
 
     def collect(self, start, stop):
-        self.__rise_exception_if_instrument_is_empty()
-        [start_dt, stop_dt] = self.__convert_to_datetime_pbjects(start, stop)
+        self.__raise_exception_if_instrument_is_empty()
+        [start_dt, stop_dt] = self.__convert_to_datetime_objects(start, stop)
         self.__check_whether_dates_are_in_boundaries(start_dt, stop_dt)
 
         return self.__collect_data_from_period(start_dt, stop_dt)
 
-    def __rise_exception_if_instrument_is_empty(self):
+    def __raise_exception_if_instrument_is_empty(self):
         if self.instrument is None:
             raise StockNameNotExist("Uninitialized stock name, run set_stock() method first")
 
-    def __convert_to_datetime_pbjects(self, start, stop):
+    def __convert_to_datetime_objects(self, start, stop):
         try:
             start_dt = dt.strptime(start, '%Y-%m-%d')
             stop_dt = dt.strptime(stop, '%Y-%m-%d')

@@ -1,8 +1,11 @@
 from app.Engine import Engine
+from app.EngineDTO import EngineDTO
 from app.Strategy import Strategy
 from app.EngineExceptions import *
 from datetime import datetime
 import pandas as pd
+from datetime import datetime as dt
+
 
 class EngineImpl(Engine):
     def __init__(self, df):
@@ -18,7 +21,7 @@ class EngineImpl(Engine):
 
         self.working_df = self.__cut_df_if_necessary_to(start, stop)
         self.__calculate_emas_indicators(supported_emas_in_days)
-        self.run_strategy()
+        self.__run_strategy()
         self.strategy.get_indicators()
         # return sell/buy indicators and emas/price data
 
@@ -74,8 +77,12 @@ class EngineImpl(Engine):
 
         return list_of_pos
 
-    def __calculate_emas_indicators(self, emas):
-        pass
+    def __calculate_emas_indicators(self, days_emas_range):
+        emas_indicators = dict()
+        for day_range in days_emas_range:
+            emas_indicators[str(day_range)] = self.__calculate_ema(day_range)
+        return emas_indicators
+
 
     def __calculate_ema(self, days, smoothing=2):
         prices = self.working_df["Close"]
@@ -83,3 +90,25 @@ class EngineImpl(Engine):
         for price in prices[days:]:
             ema.append((price * (smoothing / (1 + days))) + ema[-1] * (1 - (smoothing / (1 + days))))
         return ema
+
+
+    def __run_strategy(self, emas_indicators):
+        # (5, 8, 10, 12, 15, 30, 35, 40, 45, 50, 60)
+
+        2021 - 08 - 17
+        for i, row in enumerate(self.working_df.rows):
+            dto = EngineDTO(dt.strptime(row["Date"], '%Y-%m-%d'),
+                            row["Close"],
+                            emas_indicators["5"][i],
+                            emas_indicators["8"][i],
+                            emas_indicators["10"][i],
+                            emas_indicators["12"][i],
+                            emas_indicators["15"][i],
+                            emas_indicators["30"][i],
+                            emas_indicators["35"][i],
+                            emas_indicators["40"][i],
+                            emas_indicators["45"][i],
+                            emas_indicators["50"][i],
+                            emas_indicators["60"][i])
+
+            # pass dto to strategy

@@ -1,9 +1,11 @@
 from typing import NamedTuple
+from datetime import datetime
 
 
 class EngineDTO(NamedTuple):
     """ emaX - exponential moving average with window based on X days"""
 
+    date: datetime
     currentClosePrice: float
     ema5: float
     ema8: float
