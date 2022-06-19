@@ -20,13 +20,10 @@ class EngineImpl(Engine):
         supported_emas_in_days = (5, 8, 10, 12, 15, 30, 35, 40, 45, 50, 60)
 
         self.working_df = self.__cut_df_if_necessary_to(start, stop)
-        self.__calculate_emas_indicators(supported_emas_in_days)
-        self.__run_strategy()
-        self.strategy.get_indicators()
-        # return sell/buy indicators and emas/price data
+        emas_indicators = self.__calculate_emas_indicators(supported_emas_in_days)
+        self.__run_strategy(emas_indicators)
 
-    # def get_current_run_data(self):
-    #     pass
+        return {"price": self.working_df["Close"], "emas": emas_indicators, "signals": self.strategy.get_indicators()}
 
     def __cut_df_if_necessary_to(self, start: datetime, stop: datetime) -> pd.DataFrame:
         if start is not None and stop is not None:
@@ -83,22 +80,19 @@ class EngineImpl(Engine):
             emas_indicators[str(day_range)] = self.__calculate_ema(day_range)
         return emas_indicators
 
-
     def __calculate_ema(self, days, smoothing=2):
         prices = self.working_df["Close"]
         ema = [sum(prices[:days]) / days]
         for price in prices[days:]:
             ema.append((price * (smoothing / (1 + days))) + ema[-1] * (1 - (smoothing / (1 + days))))
+
+        # TODO: add empty ema or None to fill gap based on days period
         return ema
 
-
     def __run_strategy(self, emas_indicators):
-        # (5, 8, 10, 12, 15, 30, 35, 40, 45, 50, 60)
-
-        2021 - 08 - 17
-        for i, row in enumerate(self.working_df.rows):
-            dto = EngineDTO(dt.strptime(row["Date"], '%Y-%m-%d'),
-                            row["Close"],
+        for i, row in enumerate(self.working_df.iterrows()):
+            dto = EngineDTO(dt.strptime(row[1]["Date"], '%Y-%m-%d'),
+                            row[1]["Close"],
                             emas_indicators["5"][i],
                             emas_indicators["8"][i],
                             emas_indicators["10"][i],
@@ -110,5 +104,4 @@ class EngineImpl(Engine):
                             emas_indicators["45"][i],
                             emas_indicators["50"][i],
                             emas_indicators["60"][i])
-
-            # pass dto to strategy
+            self.strategy.calculate(dto)

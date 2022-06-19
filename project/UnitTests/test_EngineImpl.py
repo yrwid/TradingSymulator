@@ -22,13 +22,13 @@ class StrategyBasedOnDays(Strategy):
 
 class StrategyBasedOnPriceOverTimeData(Strategy):
     class PreviousPriceType:
-        price: float
-        active: bool
+        def __init__(self, price):
+            self.price = price
 
     def __init__(self, stocks_bought_already: bool):
 
         Strategy.__init__(self, stocks_bought_already)
-        self.previousClosePrices = [self.PreviousPriceType() for _ in range(4)]
+        self.previousClosePrices = [self.PreviousPriceType(0.0) for _ in range(4)]
 
     def calculate(self, dto: EngineDTO):
         self.date = dto.date
@@ -36,13 +36,13 @@ class StrategyBasedOnPriceOverTimeData(Strategy):
         buy_result = True
         sell_result = True
         for previousPrice in self.previousClosePrices:
-            if not (previousPrice.price < dto.currentClosePrice and buy_result and previousPrice.active):
+            if not (previousPrice.price < dto.currentClosePrice and buy_result):
                 buy_result = False
 
-            if not (previousPrice.price > dto.currentClosePrice and sell_result and previousPrice.active):
+            if not (previousPrice.price > dto.currentClosePrice and sell_result):
                 sell_result = False
 
-        if buy_result == sell_result:
+        if buy_result == True and sell_result == True:
             raise RuntimeError("sell and buy signals occurred at the same time")
 
         if sell_result:
