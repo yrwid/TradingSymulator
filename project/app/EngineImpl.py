@@ -82,11 +82,18 @@ class EngineImpl(Engine):
 
     def __calculate_ema(self, days, smoothing=2):
         prices = self.working_df["Close"]
+        if len(prices) < days:
+            # Not enough data to calculate ema
+            ema = [None for _ in range(len(prices))]
+            return ema
+
         ema = [sum(prices[:days]) / days]
         for price in prices[days:]:
             ema.append((price * (smoothing / (1 + days))) + ema[-1] * (1 - (smoothing / (1 + days))))
 
-        # TODO: add empty ema or None to fill gap based on days period
+        # Fill ema with none values to match prices
+        for i in range(0, len(prices) - len(ema)):
+            ema.insert(0, None)
         return ema
 
     def __run_strategy(self, emas_indicators):

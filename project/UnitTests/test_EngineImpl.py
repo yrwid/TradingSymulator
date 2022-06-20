@@ -26,7 +26,6 @@ class StrategyBasedOnPriceOverTimeData(Strategy):
             self.price = price
 
     def __init__(self, stocks_bought_already: bool):
-
         Strategy.__init__(self, stocks_bought_already)
         self.previousClosePrices = [self.PreviousPriceType(0.0) for _ in range(4)]
 
@@ -52,7 +51,7 @@ class StrategyBasedOnPriceOverTimeData(Strategy):
 
         for i in range(len(self.previousClosePrices)):
             if i+1 >= len(self.previousClosePrices):
-                self.previousClosePrices[i] = dto.currentClosePrice
+                self.previousClosePrices[i].price = dto.currentClosePrice
             else:
                 self.previousClosePrices[i] = self.previousClosePrices[i+1]
 
