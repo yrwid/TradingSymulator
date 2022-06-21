@@ -15,7 +15,7 @@ class Strategy(ABC):
         pass
 
     def get_indicators(self):
-        return {"Buy": tuple(self.buy_signals), "Sell": tuple(self.sell_signals)}
+        return {"buy": tuple(self.buy_signals), "sell": tuple(self.sell_signals)}
 
     def _buy_if_possible(self):
         if self.isBoughtAlready is False:

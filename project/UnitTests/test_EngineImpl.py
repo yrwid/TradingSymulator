@@ -22,12 +22,13 @@ class StrategyBasedOnDays(Strategy):
 
 class StrategyBasedOnPriceOverTimeData(Strategy):
     class PreviousPriceType:
-        def __init__(self, price):
+        def __init__(self, price, init):
             self.price = price
+            self.initialized = init
 
     def __init__(self, stocks_bought_already: bool):
         Strategy.__init__(self, stocks_bought_already)
-        self.previousClosePrices = [self.PreviousPriceType(0.0) for _ in range(4)]
+        self.previousClosePrices = [self.PreviousPriceType(0.0, False) for _ in range(3)]
 
     def calculate(self, dto: EngineDTO):
         self.date = dto.date
@@ -35,10 +36,15 @@ class StrategyBasedOnPriceOverTimeData(Strategy):
         buy_result = True
         sell_result = True
         for previousPrice in self.previousClosePrices:
+            # TODO: every next price should be greater than previous, not only if 4th is greater than rest 3 it will trigger
             if not (previousPrice.price < dto.currentClosePrice and buy_result):
                 buy_result = False
 
             if not (previousPrice.price > dto.currentClosePrice and sell_result):
+                sell_result = False
+
+            if previousPrice.initialized == False:
+                buy_result = False
                 sell_result = False
 
         if buy_result == True and sell_result == True:
@@ -52,8 +58,11 @@ class StrategyBasedOnPriceOverTimeData(Strategy):
         for i in range(len(self.previousClosePrices)):
             if i+1 >= len(self.previousClosePrices):
                 self.previousClosePrices[i].price = dto.currentClosePrice
+                self.previousClosePrices[i].initialized = True
             else:
-                self.previousClosePrices[i] = self.previousClosePrices[i+1]
+                # TODO: find better way to copy objects :D
+                self.previousClosePrices[i].price = self.previousClosePrices[i+1].price
+                self.previousClosePrices[i].initialized = self.previousClosePrices[i + 1].initialized
 
 
 class StrategyBasedOnEmaData(Strategy):
@@ -80,12 +89,11 @@ def test_buy_sell_signals_basad_on_price(engine_with_data):
     eng = engine_with_data
     eng.set_strategy(price_over_time_test_strategy)
     buy_sell_signals = eng.run()
-    expected_signals = ((datetime(2021, 8, 18), True),
-                        (datetime(2020, 8, 24), False),
-                        (datetime(2020, 9, 8),  True),
-                        (datetime(2020, 9, 24), False))
+    expected_buy_signals = (datetime(2021, 8, 17), datetime(2020, 9, 8))
+    expected_sell_signals = (datetime(2020, 8, 24), datetime(2020, 9, 24))
 
-    assert buy_sell_signals == expected_signals
+    assert buy_sell_signals["signals"]["buy"] == expected_buy_signals
+    assert buy_sell_signals["signals"]["sell"] == expected_sell_signals
 
 
 def test_buy_sell_signals_basad_on_days(engine_with_data):
