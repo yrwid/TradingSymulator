@@ -35,17 +35,12 @@ class StrategyBasedOnPriceOverTimeData(Strategy):
 
         buy_result = True
         sell_result = True
-        for previousPrice in self.previousClosePrices:
-            # TODO: every next price should be greater than previous, not only if 4th is greater than rest 3 it will trigger
-            if not (previousPrice.price < dto.currentClosePrice and buy_result):
-                buy_result = False
+        for i in range(len(self.previousClosePrices) - 1):
+            buy_result = (self.previousClosePrices[i] < self.previousClosePrices[i+1]) and buy_result
 
-            if not (previousPrice.price > dto.currentClosePrice and sell_result):
-                sell_result = False
+        for i in range(len(self.previousClosePrices) - 1):
+            sell_result = (self.previousClosePrices[i] > self.previousClosePrices[i+1]) and sell_result
 
-            if previousPrice.initialized == False:
-                buy_result = False
-                sell_result = False
 
         if buy_result == True and sell_result == True:
             raise RuntimeError("sell and buy signals occurred at the same time")
