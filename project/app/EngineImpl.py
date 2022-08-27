@@ -1,5 +1,6 @@
 from app.Engine import Engine
 from app.EngineDTO import EngineDTO
+from datetime import timedelta
 from app.Strategy import Strategy
 from app.EngineExceptions import *
 from datetime import datetime
@@ -12,12 +13,13 @@ class EngineImpl(Engine):
         Engine.__init__(self, df)
         self.strategy = None
         self.working_df = None
+        self.previous_date = None
 
     def set_strategy(self, strategy: Strategy):
         self.strategy = strategy
 
     def run(self, start=None, stop=None):
-        supported_emas_in_days = (5, 8, 10, 12, 15, 30, 35, 40, 45, 50, 60)
+        supported_emas_in_days = (5, 8, 10, 12, 15, 20, 30, 35, 40, 45, 50, 60)
 
         self.working_df = self.__cut_df_if_necessary_to(start, stop)
         emas_indicators = self.__calculate_emas_indicators(supported_emas_in_days)
@@ -98,6 +100,11 @@ class EngineImpl(Engine):
 
     def __run_strategy(self, emas_indicators):
         for i, row in enumerate(self.working_df.iterrows()):
+            current_date = dt.strptime(row[1]["Date"], '%Y-%m-%d')
+            if self.previous_date is not None:
+                if (current_date - self.previous_date) > timedelta(days=7):
+                    raise InconsistencyData
+
             dto = EngineDTO(dt.strptime(row[1]["Date"], '%Y-%m-%d'),
                             row[1]["Close"],
                             emas_indicators["5"][i],
@@ -105,6 +112,7 @@ class EngineImpl(Engine):
                             emas_indicators["10"][i],
                             emas_indicators["12"][i],
                             emas_indicators["15"][i],
+                            emas_indicators["20"][i],
                             emas_indicators["30"][i],
                             emas_indicators["35"][i],
                             emas_indicators["40"][i],
@@ -112,3 +120,4 @@ class EngineImpl(Engine):
                             emas_indicators["50"][i],
                             emas_indicators["60"][i])
             self.strategy.calculate(dto)
+            self.previous_date = current_date

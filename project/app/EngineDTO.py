@@ -12,6 +12,7 @@ class EngineDTO(NamedTuple):
     ema10: float
     ema12: float
     ema15: float
+    ema20: float
     ema30: float
     ema35: float
     ema40: float

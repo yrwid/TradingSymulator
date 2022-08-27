@@ -73,10 +73,10 @@ class StrategyBasedOnEmaData(Strategy):
     def calculate(self, dto: EngineDTO):
         self.date = dto.date
 
-        if dto.ema15 is None or dto.ema5 is None:
+        if dto.ema20 is None or dto.ema5 is None:
             return
 
-        if dto.ema15 > dto.ema5:
+        if dto.ema20 > dto.ema5:
             self._sell_if_possible()
         else:
             self._buy_if_possible()
@@ -121,67 +121,34 @@ def test_buy_sell_signals_basad_on_emas(engine_with_data):
     eng.set_strategy(ema_based_test_strategy)
     buy_sell_signals = eng.run()
 
-    print(buy_sell_signals["price"])
+    expected_buy_signals = (datetime(2021, 9, 8),)
+    expected_sell_signals = (datetime(2021, 9, 30),)
 
-    # TODO: verify calculated ema by manual calculating:
-    # 100.01,
-    # 100.02,
-    # 100.03,
-    # 02.01,
-    # 50.11,
-    # 49.30,
-    # 48.74,
-    # 47.22,
-    # 46.78,
-    # 45.58,
-    # 44.04,
-    # 46.78,
-    # 44.62,
-    # 46.32,
-    # 40.36,
-    # 60.98,
-    # 80.02,
-    # 100.00,
-    # 120.00,
-    # 130.50,
-    # 140.68,
-    # 150.42,
-    # 160.94,
-    # 170.78,
-    # 180.86,
-    # 190.36,
-    # 200.00,
-    # 190.42,
-    # 180.80,
-    # 170.10,
-    # 160.00,
-    # 200.02,
-    # 150.18,
-    # 140.82,
-    # 130.10,
-    # 120.80,
-    # 110.54,
-    # 120.10,
-    # 130.00,
-    # 120.14,
-    # 110.10,
-    # 120.86
-
-    expected_buy_signals = (datetime(2021, 9, 3),)
-    expected_sell_signals = (datetime(2021, 8, 18), datetime(2021, 9, 29))
-
+    print(buy_sell_signals["emas"]["20"])
     assert buy_sell_signals["signals"]["buy"] == expected_buy_signals
     assert buy_sell_signals["signals"]["sell"] == expected_sell_signals
 
 
 def test_inconsistency_date():
+    ema_based_test_strategy = StrategyBasedOnEmaData(stocks_bought_already=False)
     data_manager = DataManagerImpl()
     data_manager.register_data_source("cdproject", "goldFiles/cdproject_incosistency_data.csv", "csv")
     eng = EngineImpl(data_manager.get_df())
+    eng.set_strategy(ema_based_test_strategy)
+
     with pytest.raises(EngineExceptions.InconsistencyData):
         eng.run()
 
 
-def test_exceptions():
-    assert False
-    
+def test_exceptions(engine_with_data):
+    ema_based_test_strategy = StrategyBasedOnEmaData(stocks_bought_already=False)
+    data_manager = DataManagerImpl()
+    data_manager.register_data_source("cdproject", "goldFiles/cdproject_exception_data.csv", "csv")
+    eng = EngineImpl(data_manager.get_df())
+    eng.set_strategy(ema_based_test_strategy)
+
+    with pytest.raises(EngineExceptions.EdgeDateNotExist):
+        eng.run(datetime(2021, 8, 28))
+
+    with pytest.raises(EngineExceptions.RedundantEdgeData):
+        eng.run(datetime(2021, 8, 31))
