@@ -18,7 +18,7 @@ class GpwCollector(Collector):
         self.instrument = stock_name
         self.instrument_type = self.INSTRUMENT_TYPES['stock']
 
-    def collect(self, start, stop):
+    def collect(self, start, stop = dt.now().strftime('%Y-%m-%d')):
         self.__raise_exception_if_instrument_is_empty()
         [start_dt, stop_dt] = self.__convert_to_datetime_objects(start, stop)
         self.__check_whether_dates_are_in_boundaries(start_dt, stop_dt)
@@ -61,6 +61,7 @@ class GpwCollector(Collector):
             one_day_data = self.__collect_one_record_from(start.strftime('%d-%m-%Y'))
             data_from_period.append(one_day_data)
             start += timedelta(days=1)  # increase day one by one
+            print("*")
 
         return data_from_period
 

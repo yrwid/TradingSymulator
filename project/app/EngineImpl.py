@@ -29,8 +29,8 @@ class EngineImpl(Engine):
 
     def __cut_df_if_necessary_to(self, start: datetime, stop: datetime) -> pd.DataFrame:
         if start is not None and stop is not None:
-            start_pos = self.__get_indexes(start.strftime("%Y-%b-%d"))
-            stop_pos = self.__get_indexes(stop.strftime("%Y-%b-%d"))
+            start_pos = self.__get_indexes(start.strftime("%Y-%m-%d"))
+            stop_pos = self.__get_indexes(stop.strftime("%Y-%m-%d"))
 
             # TODO: Split these checks into two separated methods each checking only one position.
             if len(start_pos) > 1 or len(stop_pos) > 1:
@@ -39,8 +39,10 @@ class EngineImpl(Engine):
             if len(start_pos) < 1 or len(stop_pos) < 1:
                 raise EdgeDateNotExist
 
+            return self.df.iloc[start_pos[0][0]:stop_pos[0][0], :]
+
         elif start is not None and stop is None:
-            start_pos = self.__get_indexes(start.strftime("%Y-%b-%d"))
+            start_pos = self.__get_indexes(start.strftime("%Y-%m-%d"))
 
             if len(start_pos) > 1:
                 raise RedundantEdgeData
@@ -48,8 +50,10 @@ class EngineImpl(Engine):
             if len(start_pos) < 1:
                 raise EdgeDateNotExist
 
+            return self.df.iloc[start_pos[0][0]:, :]
+
         elif start is None and stop is not None:
-            stop_pos = self.__get_indexes(stop.strftime("%Y-%b-%d"))
+            stop_pos = self.__get_indexes(stop.strftime("%Y-%m-%d"))
 
             if len(stop_pos) > 1:
                 raise RedundantEdgeData
@@ -57,10 +61,11 @@ class EngineImpl(Engine):
             if len(stop_pos) < 1:
                 raise EdgeDateNotExist
 
+            return self.df.iloc[:stop_pos[0][0], :]
+
         else:
             return self.df
 
-        return self.df.iloc[start_pos[0][0]:stop_pos[0][0], :]
 
     def __get_indexes(self, value):
         list_of_pos = []
