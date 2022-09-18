@@ -6,6 +6,7 @@ from app.EngineExceptions import *
 from datetime import datetime
 import pandas as pd
 from datetime import datetime as dt
+import numpy
 
 
 class EngineImpl(Engine):
@@ -25,7 +26,7 @@ class EngineImpl(Engine):
         emas_indicators = self.__calculate_emas_indicators(supported_emas_in_days)
         self.__run_strategy(emas_indicators)
 
-        return {"price": self.working_df["Close"], "emas": emas_indicators, "signals": self.strategy.get_indicators()}
+        return {"date": self.working_df["Date"].tolist(), "price": self.working_df["Close"].tolist(), "emas": emas_indicators, "signals": self.strategy.get_indicators()}
 
     def __cut_df_if_necessary_to(self, start: datetime, stop: datetime) -> pd.DataFrame:
         if start is not None and stop is not None:
@@ -91,7 +92,7 @@ class EngineImpl(Engine):
         prices = self.working_df["Close"]
         if len(prices) < days:
             # Not enough data to calculate ema
-            ema = [None for _ in range(len(prices))]
+            ema = [numpy.nan for _ in range(len(prices))]
             return ema
 
         ema = [sum(prices[:days]) / days]
@@ -100,7 +101,7 @@ class EngineImpl(Engine):
 
         # Fill ema with none values to match prices
         for i in range(0, len(prices) - len(ema)):
-            ema.insert(0, None)
+            ema.insert(0, numpy.nan)
         return ema
 
     def __run_strategy(self, emas_indicators):

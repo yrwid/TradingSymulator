@@ -61,7 +61,7 @@ class GpwCollector(Collector):
             one_day_data = self.__collect_one_record_from(start.strftime('%d-%m-%Y'))
             data_from_period.append(one_day_data)
             start += timedelta(days=1)  # increase day one by one
-            print("*")
+            print("*", end='')
 
         return data_from_period
 
