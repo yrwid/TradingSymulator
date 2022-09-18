@@ -66,6 +66,16 @@ if __name__ == "__main__":
     ax.plot(bss["emas"]["50"], lw=2)
     ax.plot(bss["emas"]["60"], lw=2)
 
+    for buy_signal in bss["signals"]["buy"]:
+        for i in range(len(bss["date"])):
+            if buy_signal.strftime('%Y-%m-%d') == bss["date"][i]:
+                plt.vlines(x=i, ymin=0, ymax=bss["price"][i] + 1, colors = 'green')
+
+    for sell_signal in bss["signals"]["sell"]:
+        for i in range(len(bss["date"])):
+            if sell_signal.strftime('%Y-%m-%d') == bss["date"][i]:
+                plt.vlines(x=i, ymin=0, ymax=bss["price"][i] + 1, colors = 'red')
+
     # make and use the formatter
     mt = mticker.FuncFormatter(listifed_formatter)
     ax.xaxis.set_major_formatter(mt)
@@ -77,30 +87,4 @@ if __name__ == "__main__":
     # rotate the labels
     [lab.set_rotation(30) for lab in ax.get_xticklabels()]
 
- #    plt.plot(bss["price"], bss["price"])
- #    plt.plot(bss["price"], bss["emas"]["5"])
- #    plt.xticks(len(bss["date"]), bss["date"])
- # #             bss["emas"]["5"],
- # #             bss["emas"]["8"],
- # #             bss["emas"]["10"],
- # #             bss["emas"]["12"],
- # #             bss["emas"]["15"],
- # #             bss["emas"]["20"],
- # #             bss["emas"]["30"],
- # #             bss["emas"]["35"],
- # #             bss["emas"]["40"],
- # #             bss["emas"]["45"],
- # #             bss["emas"]["50"],
- # #             bss["emas"]["60"])
-
     plt.show()
-    # plt.savefig('plot.png', dpi=1200)
-
-    # cv=['closeV']
-    # for ema in self.emas_used:
-    #     cv.append('EMA'+str(ema))
-    # self.__data.plot(x='data', y=cv, kind = 'line', marker = '.')
-    # plt.show()
-
-
-
